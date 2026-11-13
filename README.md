@@ -89,7 +89,9 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
 - Choose **Stop Home Helper** in the settings app, or press **Home three
   times within two seconds** (the emergency stop). Either way it stays off
   until you start it again from the settings app.
-- Uninstall both apps like any other app on the TV, or from webOS Dev Manager.
+- To remove it cleanly, choose **Stop Home Helper** first, then uninstall both
+  apps like any other app on the TV, or from webOS Dev Manager. Stopping also
+  removes the helper's start-at-boot task, so nothing is left behind.
 - If the TV is hard to use, remove it from a computer, then unplug the TV for
   30 seconds:
   `ares-install --device tv --remove io.github.theogal.homehelper`

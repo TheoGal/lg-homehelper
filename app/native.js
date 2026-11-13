@@ -1175,32 +1175,13 @@ service.call('luna://io.github.theogal.homehelper.service/status', {}, function 
     (m.payload.state.enabled && m.payload.state.schema === 3)
   )
     return;
+  // The service registers the boot task itself (see service.js enable).
   service.call('luna://io.github.theogal.homehelper.service/enable', {}, function (a) {
     if (!a.payload || !a.payload.returnValue) {
       log({ event: 'startup-arm-error', result: a.payload });
       return;
     }
-    service.call(
-      'luna://com.palm.activitymanager/create',
-      {
-        activity: {
-          name: 'io.github.theogal.homehelper.boot',
-          description: 'Bounded Native Home once per boot',
-          type: { foreground: true, persist: true },
-          schedule: { interval: '10s', precise: true },
-          callback: {
-            method: 'luna://io.github.theogal.homehelper.service/tick',
-            params: {}
-          }
-        },
-        start: true,
-        replace: true,
-        subscribe: false
-      },
-      function (r) {
-        log({ event: 'startup-create', result: r.payload });
-      }
-    );
+    log({ event: 'startup-create', result: a.payload.create });
   });
 });
 

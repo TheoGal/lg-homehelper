@@ -138,13 +138,36 @@ service.register('disable', function (m) {
     m.respond({ returnValue: false, errorText: String(e) });
   }
 });
+// The service creates the boot task itself: webOS only lets a task's creator
+// cancel it, so this keeps disable able to remove it again.
 service.register('enable', function (m) {
   try {
     save({ enabled: true, boot: boot(), schema: 3 });
-    m.respond({ returnValue: true });
   } catch (e) {
     m.respond({ returnValue: false, errorText: String(e) });
+    return;
   }
+  call(
+    'luna://com.palm.activitymanager/create',
+    {
+      activity: {
+        name: name,
+        description: 'Start Home Helper once per boot',
+        type: { foreground: true, persist: true },
+        schedule: { interval: '10s', precise: true },
+        callback: {
+          method: 'luna://io.github.theogal.homehelper.service/tick',
+          params: {}
+        }
+      },
+      start: true,
+      replace: true,
+      subscribe: false
+    },
+    function (r) {
+      m.respond({ returnValue: true, create: r });
+    }
+  );
 });
 service.register('tick', function (m) {
   try {

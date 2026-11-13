@@ -69,10 +69,19 @@ if (params.nativeHomeStop === true) {
   // restart the helper, and tell a running controller to release the remote.
   try {
     require('./state-permissions').requestStop(root + '/state');
-    process.exit(0);
   } catch (e) {
     process.exit(1);
   }
+  // Then remove the boot task, so "Stop, then uninstall" leaves nothing behind.
+  // The stop above already holds even if this call fails.
+  require('child_process').execFile(
+    '/usr/bin/luna-send-pub',
+    ['-n', '1', 'luna://io.github.theogal.homehelper.service/disable', '{}'],
+    { timeout: 5000 },
+    function () {
+      process.exit(0);
+    }
+  );
 } else if (params.nativeHomePair === true) {
   // Pairing waits for "Allow" on the TV; detach already runs us in our own session.
   require('./pair')(root + '/state', function (ok) {
