@@ -55,6 +55,9 @@ Open **Home Helper Settings** on the TV:
 3. Optional: choose **Return to this app when others close**, then **Allow**
    on the prompt the TV shows
 
+**Open LG Home** takes you to LG Home once, without changing your choice: the
+Home button keeps opening your app.
+
 After that the helper starts by itself on every boot.
 
 ![Home Helper Settings with Hearth chosen and pairing on](docs/settings-app-chosen.png)

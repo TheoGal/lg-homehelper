@@ -201,6 +201,11 @@
         message(ok ? 'Home Helper started.' : 'Could not start Home Helper.');
         setTimeout(refreshTarget, 1500);
       });
+    } else if (el.id === 'lghome') {
+      // A one-off visit: the Home button keeps opening the chosen app.
+      launch(LG_HOME, null, function (ok) {
+        if (!ok) message('Could not open LG Home.');
+      });
     } else if (el.id === 'pair') {
       startPairing();
     } else if (el.id === 'reset') {
