@@ -18,7 +18,7 @@ Source: https://github.com/TheoGal/lg-homehelper
 
 ## Install
 
-You need a TV with **Developer Mode** on, and both packages from the
+You need a TV with **Developer Mode** on, and **BOTH** packages from the
 [latest release](https://github.com/TheoGal/lg-homehelper/releases/latest):
 
 | Package | What it is |
