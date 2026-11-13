@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Draw the tile icons for all five apps (outlined symbols on a coloured tile).
+"""Draw the tile icons for all five apps: solid yellow houses for Home Helper,
+outlined white symbols on coloured tiles for the three LG shortcuts.
 
   python3 scripts/make-icons.py
 
@@ -114,16 +115,40 @@ def live_tv(d, W, colour, background):
     d.text((c - tw / 2 - box[0], W * 0.51 - th / 2 - box[1]), 'LIVE', fill=colour, font=font)
 
 
+def house_filled(d, W, colour):
+    left, right, top, eave, bottom = W * 0.24, W * 0.76, W * 0.22, W * 0.46, W * 0.78
+    pts = [(W / 2, top), (right + W * 0.06, eave + W * 0.01), (right, eave + W * 0.01), (right, bottom),
+           (left, bottom), (left, eave + W * 0.01), (left - W * 0.06, eave + W * 0.01)]
+    d.polygon(pts, fill=colour)
+    outline(d, pts, colour, round(W * 0.03))  # soften the corners
+
+
+def gear_points(cx, cy, radius):
+    teeth, r_out, r_in, pts = 8, radius, radius * 0.74, []
+    for i in range(teeth * 2):
+        r = r_out if i % 2 == 0 else r_in
+        for k in (-0.3, 0.3):  # flat tooth tops
+            a = (i + 0.5 + k) * math.pi / teeth
+            pts.append((cx + r * math.cos(a), cy + r * math.sin(a)))
+    return pts
+
+
 def home_helper(size):
+    """Solid yellow house with the door cut out."""
     im, d, W = canvas(size, DARK)
-    house(d, W, YELLOW)
+    house_filled(d, W, YELLOW)
+    d.rounded_rectangle([W * 0.43, W * 0.6, W * 0.57, W * 0.85], radius=W * 0.02, fill=DARK + (255,))
     return im
 
 
 def home_helper_settings(size):
+    """Solid yellow house with a gear cut out (its centre hole stays yellow)."""
     im, d, W = canvas(size, DARK)
-    house(d, W, YELLOW, door=False)
-    gear(d, W, YELLOW, W / 2, W * 0.615, W * 0.14, width=round(stroke(W) * 0.6))
+    house_filled(d, W, YELLOW)
+    cx, cy, r = W / 2, W * 0.6, W * 0.135
+    d.polygon(gear_points(cx, cy, r), fill=DARK + (255,))
+    h = r * 0.36
+    d.ellipse([cx - h, cy - h, cx + h, cy + h], fill=YELLOW + (255,))
     return im
 
 
