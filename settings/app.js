@@ -181,7 +181,17 @@
       row.onclick = function () { listIndex = i; zone = 'list'; setTarget(a.id); };
       rows.appendChild(row);
     });
-    var visible = Math.floor($('list').clientHeight / ROW);
+    // Show whole rows only: trim the list to a multiple of the row height.
+    var list = $('list');
+    if (!list.getAttribute('data-fit')) {
+      var space = $('main').getBoundingClientRect().bottom - list.getBoundingClientRect().top;
+      if (space >= ROW) {
+        list.style.flex = 'none';
+        list.style.height = Math.floor(space / ROW) * ROW + 'px';
+        list.setAttribute('data-fit', '1');
+      }
+    }
+    var visible = Math.floor(list.clientHeight / ROW);
     var top = Math.max(0, Math.min(listIndex - Math.floor(visible / 2), apps.length - visible));
     rows.style.top = (-top * ROW) + 'px';
     var side = sideItems();
