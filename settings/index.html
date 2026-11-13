@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Home Helper Settings</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden;
+    background: #16120f; color: #f3ece6; font-family: sans-serif; }
+  #wrap { display: flex; height: 100%; padding: 72px 96px; gap: 72px; }
+  #side { width: 600px; display: flex; flex-direction: column; gap: 24px; }
+  h1 { font-size: 52px; margin: 0 0 8px; font-weight: 600; }
+  .label { font-size: 26px; color: #b9aea4; }
+  #current { background: #241d19; border-radius: 20px; padding: 28px 32px; }
+  #currentTitle { font-size: 38px; margin: 6px 0 4px; word-break: break-all; }
+  #currentMeta { font-size: 24px; color: #b9aea4; }
+  #helperState, #pairState { font-size: 24px; margin-top: 10px; }
+  .btn { display: block; width: 100%; text-align: left; font-size: 30px; padding: 22px 28px;
+    border-radius: 16px; background: #2c241f; color: inherit; border: 3px solid transparent; }
+  .focus { border-color: #f0b46c !important; background: #3a2f28 !important; }
+  #manual { font-size: 30px; padding: 20px 24px; border-radius: 16px; width: 100%;
+    background: #2c241f; color: inherit; border: 3px solid transparent; outline: none; }
+  #msg { font-size: 26px; min-height: 64px; color: #f0b46c; }
+  #hint { font-size: 22px; color: #8c8178; margin-top: auto; line-height: 1.4; }
+  #main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+  #list { flex: 1; overflow: hidden; position: relative; margin-top: 16px; }
+  #rows { position: absolute; left: 0; right: 0; top: 0; transition: top .12s; }
+  .app { display: flex; align-items: center; gap: 24px; height: 96px; padding: 0 24px;
+    border-radius: 16px; border: 3px solid transparent; font-size: 32px; }
+  .app img { width: 64px; height: 64px; object-fit: contain; }
+  .app .id { font-size: 22px; color: #8c8178; margin-left: auto; }
+  .app.selected .name::after { content: "  (current)"; color: #f0b46c; font-size: 24px; }
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="side">
+    <h1>Home Helper</h1>
+    <div id="current">
+      <div class="label">Home button opens</div>
+      <div id="currentTitle">...</div>
+      <div id="currentMeta"></div>
+      <div id="helperState"></div>
+      <div id="pairState"></div>
+    </div>
+    <button class="btn nav" id="start">Start / resume Home Helper</button>
+    <button class="btn nav" id="pair">Return to this app when others close</button>
+    <button class="btn nav" id="reset">Use packaged default</button>
+    <input class="nav" id="manual" placeholder="Or type an app id, then OK">
+    <div id="msg"></div>
+    <div id="hint">Pick an app on the right and press OK, or pick LG Home to stop redirecting.
+      Press Home three times quickly to stop Home Helper at once; come back here and choose Start to resume.</div>
+  </div>
+  <div id="main">
+    <div class="label">Installed apps</div>
+    <div id="list"><div id="rows"></div></div>
+  </div>
+</div>
+<script src="app.js"></script>
+</body>
+</html>

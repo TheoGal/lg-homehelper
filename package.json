@@ -1,0 +1,17 @@
+{
+  "name": "lg-homehelper",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Make the LG webOS remote's Home button open an app of your choice",
+  "scripts": {
+    "build": "python3 scripts/build.py",
+    "test": "node tests/test-target.cjs && node tests/test-home-control.cjs"
+  },
+  "devDependencies": {
+    "@babel/core": "7.29.7",
+    "@babel/preset-env": "7.29.7",
+    "acorn": "8.19.0",
+    "core-js-bundle": "3.51.0",
+    "safe-buffer": "5.2.1"
+  }
+}

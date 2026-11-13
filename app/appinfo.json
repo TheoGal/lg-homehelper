@@ -1,0 +1,19 @@
+{
+  "id": "io.github.theogal.homehelper",
+  "version": "1.0.0",
+  "type": "native",
+  "main": "detach",
+  "title": "Home Helper",
+  "icon": "icon.png",
+  "requiredACG": [
+    "application.launcher",
+    "activity.operation",
+    "activity.query"
+  ],
+  "noWindow": true,
+  "noSplashOnLaunch": true,
+  "spinnerOnLaunch": false,
+  "largeIcon": "largeIcon.png",
+  "iconColor": "#241d19",
+  "titleVisible": true
+}

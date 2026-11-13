@@ -1,0 +1,14 @@
+{
+  "id": "io.github.theogal.homehelper.settings",
+  "version": "1.0.0",
+  "vendor": "Home Helper",
+  "type": "web",
+  "main": "index.html",
+  "title": "Home Helper Settings",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "iconColor": "#241d19",
+  "resolution": "1920x1080",
+  "disableBackHistoryAPI": true,
+  "requiredPermissions": ["applications.query", "applications.operation"]
+}

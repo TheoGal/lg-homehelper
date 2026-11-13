@@ -1,0 +1,1 @@
+{"id":"io.github.theogal.homehelper.service","description":"Home Helper service","services":[{"name":"io.github.theogal.homehelper.service"}],"requiredACG":["activity.operation","application.launcher"]}
