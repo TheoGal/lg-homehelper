@@ -24,7 +24,8 @@ pip install -r requirements.txt
 python3 scripts/build.py
 ```
 
-Packages land in `dist/`. To set a default app before installing:
+Packages land in `dist/`. Tests: `npm test`, and `npm run test:native`
+for the remote handling (needs a C compiler). To set a default app before installing:
 
 ```
 python3 scripts/build.py --target com.plexapp.plex
@@ -113,7 +114,10 @@ reach your page.
 
 - If Developer Mode expires, the TV removes these apps; reinstall and repeat
   the setup.
-- Holding Back to leave an app on purpose still goes to LG Home.
+- Back is never changed. With pairing on, when an app has used up its own
+  Back steps and closes, you land in your chosen app instead of LG Home.
+  Holding Back does whatever your TV normally does (accessibility zoom on
+  newer models); Home Helper doesn't act on it.
 - Don't run this together with Clean Your TV's Home Helper: both would react
   to the Home button.
 

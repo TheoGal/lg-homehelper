@@ -107,7 +107,7 @@ int main(int argc,char**argv){
  if(ioctl(in,GRAB,1)<0){report("FAIL grab\n");return 17;}
  struct filter f={0},irf={0};uint64_t last=ms(),irDown=0;int reason=0,irSyncLost=0;struct pollfd p[3]={{in,POLLIN,0},{0,POLLIN,0},{ir,POLLIN,0}};
  if(!generation_current()){reason=29;generation_cancelled=1;}else report("READY\n");
- while(!generation_cancelled&&!stop&&!output_failed){if(!generation_current()){reason=29;generation_cancelled=1;break;}uint64_t now=ms();if(now-last>2000){reason=20;break;}if(filter_timeout(&f,now)==OPEN_LG&&report("LGHOME\n")<0)break;
+ while(!generation_cancelled&&!stop&&!output_failed){if(!generation_current()){reason=29;generation_cancelled=1;break;}uint64_t now=ms();if(now-last>2000){reason=20;break;}(void)filter_timeout(&f,now);
  int r=poll(p,3,50);if(r<0){if(errno==EINTR)continue;reason=23;break;}
  if(!generation_current()){reason=29;generation_cancelled=1;break;}
  if(p[1].revents&(POLLHUP|POLLERR)){reason=24;break;}

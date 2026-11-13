@@ -1002,7 +1002,6 @@ function start(recovering) {
         }
         worker.stdin.write(homeControl.enabled() ? 'E' : 'D');
       }
-      if (line === 'LGHOME' && !stopRequested) visitLG();
       if (line === 'HOME') {
         cancelIrHome();
         openHome(worker);
