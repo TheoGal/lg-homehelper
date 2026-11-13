@@ -58,8 +58,10 @@ Open **Home Helper Settings** on the TV:
 **Open LG Home** takes you to LG Home once, without changing your choice: the
 Home button keeps opening your app.
 
-**Stop Home Helper** turns it off completely: the remote is left alone and it
-stays off across restarts until you choose **Start Home Helper** again.
+The first button follows the helper's state: **Start Home Helper** while
+it's off, **Stop Home Helper** while it runs. Stopping turns it off
+completely: the remote is left alone and it stays off across restarts until
+you start it again.
 Picking **LG Home** in the list is different: the helper keeps running and
 simply lets the Home button through.
 
@@ -86,7 +88,7 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
 
 - Choose **Stop Home Helper** in the settings app, or press **Home three
   times within two seconds** (the emergency stop). Either way it stays off
-  until you choose **Start Home Helper**.
+  until you start it again from the settings app.
 - Uninstall both apps like any other app on the TV, or from webOS Dev Manager.
 - If the TV is hard to use, remove it from a computer, then unplug the TV for
   30 seconds:

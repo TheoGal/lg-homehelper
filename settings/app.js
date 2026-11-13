@@ -6,6 +6,7 @@
     'com.webos.app.cpcover'];
   var ROW = 102; // .app height + gap
   var LG_HOME = 'com.webos.app.home';
+  var running = false; // unknown counts as stopped: starting is always safe
   var apps = [], current = null, targetLoaded = false, packagedTarget = null, zone = 'list', listIndex = 0, sideIndex = 0;
   var $ = function (id) { return document.getElementById(id); };
 
@@ -53,6 +54,8 @@
         $('currentTitle').textContent = 'Unknown';
         $('currentMeta').textContent = 'Home Helper service did not answer. Is Home Helper installed?';
         $('helperState').textContent = '';
+        running = false;
+        $('power').textContent = 'Start Home Helper';
         return;
       }
       var first = !targetLoaded;
@@ -71,8 +74,10 @@
       reset.style.display = packagedTarget && r.target.source === 'tv' ? '' : 'none';
       reset.textContent = 'Use packaged default (' + titleOf(packagedTarget || '') + ')';
       $('helperState').textContent = r.running ? 'Home Helper is running' :
-        'Home Helper is stopped. Choose Start to enable the Home button.';
+        'Home Helper is stopped. Start it to enable the Home button.';
       $('helperState').style.color = r.running ? '#9fd59a' : '#f0b46c';
+      running = !!r.running;
+      $('power').textContent = running ? 'Stop Home Helper' : 'Start Home Helper';
       showPairing(r.pairing);
       render();
     });
@@ -205,18 +210,20 @@
 
   function activateSide() {
     var el = sideItems()[sideIndex];
-    if (el.id === 'start') {
+    if (el.id === 'power' && running) {
+      message('Stopping...');
+      launch(HELPER, { nativeHomeStop: true }, function (ok) {
+        message(ok ? 'Home Helper stopped. The Home button goes to LG Home until you start it again.' :
+          'Could not stop Home Helper.');
+        setTimeout(refreshTarget, 1500);
+        setTimeout(refreshTarget, 4000);
+      });
+    } else if (el.id === 'power') {
       message('Starting...');
       launch(HELPER, { nativeHomeStart: true }, function (ok) {
         message(ok ? 'Home Helper started.' : 'Could not start Home Helper.');
         setTimeout(refreshTarget, 1500);
-      });
-    } else if (el.id === 'stop') {
-      message('Stopping...');
-      launch(HELPER, { nativeHomeStop: true }, function (ok) {
-        message(ok ? 'Home Helper stopped. The Home button goes to LG Home until you choose Start.' :
-          'Could not stop Home Helper.');
-        setTimeout(refreshTarget, 1500);
+        setTimeout(refreshTarget, 4000);
       });
     } else if (el.id === 'lghome') {
       // A one-off visit: the Home button keeps opening the chosen app.
