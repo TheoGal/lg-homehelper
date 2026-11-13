@@ -7,47 +7,43 @@ also brings you back to that app when another app closes.
 Until you choose an app, Home keeps going to LG Home as normal. Choosing
 **LG Home** in the settings app switches the redirect off again.
 
+Inspired by and based on the Home Helper from
+[Clean Your TV](https://github.com/Razdva122/clean-your-tv-lg-webos), which in
+turn builds on [webos-vibehack](https://github.com/OmkarK97/webos-vibehack).
+See [Credits](#credits).
+
 Source: https://github.com/TheoGal/lg-homehelper
-
-Two packages:
-
-| Package | What it is |
-| --- | --- |
-| `io.github.theogal.homehelper` | Background helper that catches the Home button (native app + service) |
-| `io.github.theogal.homehelper.settings` | On-TV settings: pick the app, start the helper, pair |
-
-## Build
-
-```
-npm install
-pip install -r requirements.txt
-python3 scripts/build.py
-```
-
-Packages land in `dist/`. Tests: `npm test`, and `npm run test:native`
-for the remote handling (needs a C compiler). To set a default app before installing:
-
-```
-python3 scripts/build.py --target com.plexapp.plex
-```
-
-To change the default in an already built package (no toolchain needed):
-
-```
-python3 scripts/build.py --retarget dist/io.github.theogal.homehelper_1.0.0_arm.ipk --target org.jellyfin.webos
-```
-
-A choice made on the TV always wins over the packaged default (including
-choosing LG Home). With neither, Home goes to LG Home.
 
 ## Install
 
-Developer Mode must be on.
+You need a TV with **Developer Mode** on, and both packages from the
+[latest release](https://github.com/TheoGal/lg-homehelper/releases/latest):
+
+| Package | What it is |
+| --- | --- |
+| `io.github.theogal.homehelper_1.0.0_arm.ipk` | **Home Helper**: the background helper that catches the Home button |
+| `io.github.theogal.homehelper.settings_1.0.0_all.ipk` | **Home Helper Settings**: pick the app, start the helper, pair |
+
+**With webOS Dev Manager** (easiest): install
+[webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop) on your
+computer, add your TV, then open its Apps page and install both .ipk files.
+
+**With the webOS CLI** (`ares-cli`):
 
 ```
-ares-install --device tv dist/io.github.theogal.homehelper_1.0.0_arm.ipk
-ares-install --device tv dist/io.github.theogal.homehelper.settings_1.0.0_all.ipk
+ares-install --device tv io.github.theogal.homehelper_1.0.0_arm.ipk
+ares-install --device tv io.github.theogal.homehelper.settings_1.0.0_all.ipk
 ```
+
+### Two tiles, on purpose
+
+After installing you'll see **two tiles** in LG Home: **Home Helper** and
+**Home Helper Settings**. Both open the settings screen. This is deliberate:
+apps that install invisibly are annoying, because you can't see they're there
+or remove them from the TV like any other app. Both parts show up, so both can
+be found and uninstalled.
+
+## Set up
 
 Open **Home Helper Settings** on the TV:
 
@@ -59,7 +55,7 @@ Open **Home Helper Settings** on the TV:
 
 After that the helper starts by itself on every boot.
 
-From a PC instead:
+From a computer instead:
 
 ```
 ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeTarget":"com.plexapp.plex"}'
@@ -69,6 +65,29 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomePair":true}
 
 `{"nativeHomeTarget":"com.webos.app.home"}` goes back to LG Home;
 `{"nativeHomeTarget":""}` clears the TV choice (packaged default, else LG Home).
+
+## Stop or remove
+
+- Press **Home three times within two seconds** to stop the helper and return
+  to LG Home. Resume from the settings app.
+- Uninstall both apps like any other app on the TV, or from webOS Dev Manager.
+- If the TV is hard to use, remove it from a computer, then unplug the TV for
+  30 seconds:
+  `ares-install --device tv --remove io.github.theogal.homehelper`
+- Last resort: turn Developer Mode off and restart; the TV deletes all dev apps.
+
+## Notes
+
+- If Developer Mode expires, the TV removes these apps; reinstall and repeat
+  the setup.
+- Back is never changed. With pairing on, when an app has used up its own
+  Back steps and closes, you land in your chosen app instead of LG Home.
+  Holding Back does whatever your TV normally does (accessibility zoom on
+  newer models); Home Helper doesn't act on it.
+- Works with the Magic Remote. A basic IR remote also works, with a short
+  flash of LG Home before your app opens.
+- Don't run this together with Clean Your TV's Home Helper: both would react
+  to the Home button.
 
 ## For launcher developers
 
@@ -102,31 +121,38 @@ When opened again by Home, your launcher receives a normal relaunch
 (`webOSRelaunch`) with no special parameters. The Home key itself does not
 reach your page.
 
-## Stop or remove
+## Build
 
-- Press **Home three times within two seconds** to stop the helper and return
-  to LG Home. Resume from the settings app.
-- If that fails, remove it from a PC, then unplug the TV for 30 seconds:
-  `ares-install --device tv --remove io.github.theogal.homehelper`
-- Last resort: turn Developer Mode off and restart; the TV deletes all dev apps.
+```
+npm install
+pip install -r requirements.txt
+python3 scripts/build.py
+```
 
-## Notes
+Packages land in `dist/`. Tests: `npm test`, and `npm run test:native`
+for the remote handling (needs a C compiler). To set a default app before
+installing:
 
-- If Developer Mode expires, the TV removes these apps; reinstall and repeat
-  the setup.
-- Back is never changed. With pairing on, when an app has used up its own
-  Back steps and closes, you land in your chosen app instead of LG Home.
-  Holding Back does whatever your TV normally does (accessibility zoom on
-  newer models); Home Helper doesn't act on it.
-- Don't run this together with Clean Your TV's Home Helper: both would react
-  to the Home button.
+```
+python3 scripts/build.py --target com.plexapp.plex
+```
+
+To change the default in an already built package (no toolchain needed):
+
+```
+python3 scripts/build.py --retarget dist/io.github.theogal.homehelper_1.0.0_arm.ipk --target org.jellyfin.webos
+```
+
+A choice made on the TV always wins over the packaged default (including
+choosing LG Home). With neither, Home goes to LG Home.
 
 ## Credits
 
-The background helper is based on the Home Helper from
-[Clean Your TV](https://github.com/Razdva122/clean-your-tv-lg-webos)
-(MIT), itself built on
-[Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv) and
-[OmkarK97/webos-vibehack](https://github.com/OmkarK97/webos-vibehack).
+Home Helper was inspired by
+[Clean Your TV](https://github.com/Razdva122/clean-your-tv-lg-webos), and its
+background helper is based on Clean Your TV's Home Helper (MIT). Clean Your TV
+in turn builds on
+[OmkarK97/webos-vibehack](https://github.com/OmkarK97/webos-vibehack) and
+[Gathin23/cleanyourtv](https://github.com/Gathin23/cleanyourtv).
 Bundles [ws](https://github.com/websockets/ws) (MIT, see `app/vendor`).
 Not affiliated with LG.
