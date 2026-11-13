@@ -51,12 +51,17 @@ Open **Home Helper Settings** on the TV:
 
 1. Pick the app the Home button should open (right side, OK). The first
    entry, **LG Home**, turns the redirect off again
-2. Choose **Start / resume Home Helper**
+2. Choose **Start Home Helper**
 3. Optional: choose **Return to this app when others close**, then **Allow**
    on the prompt the TV shows
 
 **Open LG Home** takes you to LG Home once, without changing your choice: the
 Home button keeps opening your app.
+
+**Stop Home Helper** turns it off completely: the remote is left alone and it
+stays off across restarts until you choose **Start Home Helper** again.
+Picking **LG Home** in the list is different: the helper keeps running and
+simply lets the Home button through.
 
 After that the helper starts by itself on every boot.
 
@@ -71,6 +76,7 @@ From a computer instead:
 ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeTarget":"com.plexapp.plex"}'
 ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStart":true}'
 ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomePair":true}'
+ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}'
 ```
 
 `{"nativeHomeTarget":"com.webos.app.home"}` goes back to LG Home;
@@ -78,8 +84,9 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomePair":true}
 
 ## Stop or remove
 
-- Press **Home three times within two seconds** to stop the helper and return
-  to LG Home. Resume from the settings app.
+- Choose **Stop Home Helper** in the settings app, or press **Home three
+  times within two seconds** (the emergency stop). Either way it stays off
+  until you choose **Start Home Helper**.
 - Uninstall both apps like any other app on the TV, or from webOS Dev Manager.
 - If the TV is hard to use, remove it from a computer, then unplug the TV for
   30 seconds:
@@ -121,7 +128,8 @@ launchHelper({ nativeHomeStart: true });
 | `nativeHomeTarget: "<app id>"` | Home opens that app |
 | `nativeHomeTarget: "com.webos.app.home"` | Home goes to LG Home (redirect off) |
 | `nativeHomeTarget: ""` | Clears the TV choice (packaged default, else LG Home) |
-| `nativeHomeStart: true` | Starts or resumes the helper |
+| `nativeHomeStart: true` | Starts the helper (also after a stop) |
+| `nativeHomeStop: true` | Stops the helper; it stays off until started again |
 | `nativeHomePair: true` | Asks the TV to pair, for returning after apps close |
 
 Status (current target, running, paired) is available from

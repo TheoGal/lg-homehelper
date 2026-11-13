@@ -97,7 +97,7 @@
       el.style.color = '#f08a6c';
       stopPairPoll();
     } else if (p) {
-      el.textContent = 'Does not return here after an app closes (not paired)';
+      el.textContent = 'Not paired: no return after apps close';
       el.style.color = '#b9aea4';
     }
   }
@@ -209,6 +209,13 @@
       message('Starting...');
       launch(HELPER, { nativeHomeStart: true }, function (ok) {
         message(ok ? 'Home Helper started.' : 'Could not start Home Helper.');
+        setTimeout(refreshTarget, 1500);
+      });
+    } else if (el.id === 'stop') {
+      message('Stopping...');
+      launch(HELPER, { nativeHomeStop: true }, function (ok) {
+        message(ok ? 'Home Helper stopped. The Home button goes to LG Home until you choose Start.' :
+          'Could not stop Home Helper.');
         setTimeout(refreshTarget, 1500);
       });
     } else if (el.id === 'lghome') {

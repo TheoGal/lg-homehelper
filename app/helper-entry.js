@@ -64,7 +64,16 @@ var starting =
   params.nativeHomeStart === true ||
   (typeof params.nativeHomeSetup === 'string' &&
     /^[IS][a-f0-9]{32}$/.test(params.nativeHomeSetup));
-if (params.nativeHomePair === true) {
+if (params.nativeHomeStop === true) {
+  // Same stop as the triple-Home emergency stop: latch it so boot does not
+  // restart the helper, and tell a running controller to release the remote.
+  try {
+    require('./state-permissions').requestStop(root + '/state');
+    process.exit(0);
+  } catch (e) {
+    process.exit(1);
+  }
+} else if (params.nativeHomePair === true) {
   // Pairing waits for "Allow" on the TV; detach already runs us in our own session.
   require('./pair')(root + '/state', function (ok) {
     process.exit(ok ? 0 : 1);
