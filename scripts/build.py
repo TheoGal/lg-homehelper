@@ -158,6 +158,7 @@ def compile_native(work):
 SHORTCUTS = {
     'lgsettings': ['com.palm.app.settings', 'com.webos.app.settings'],
     'lgnotifications': ['com.webos.app.notificationcenter'],
+    'lglivetv': ['com.webos.app.livetv'],
 }
 
 
