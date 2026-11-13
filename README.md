@@ -57,9 +57,7 @@ Open **Home Helper Settings** on the TV:
 
 After that the helper starts by itself on every boot.
 
-| First run: Home still goes to LG Home | An app chosen, with pairing on |
-| --- | --- |
-| ![Home Helper Settings before an app is chosen](docs/settings-first-run.png) | ![Home Helper Settings with Hearth chosen and pairing on](docs/settings-app-chosen.png) |
+![Home Helper Settings with Hearth chosen and pairing on](docs/settings-app-chosen.png)
 
 Use the arrow keys to move between the buttons on the left and the app list on
 the right; OK selects.
