@@ -133,21 +133,44 @@ def compile_js(files):
     return dict(files, **{n: c.encode() for n, c in json.loads(result.stdout).items()})
 
 
-def compile_native(work):
+def arm_cc(work, name, sources, *flags):
+    """Compile a static ARM binary for the TV with the pinned Zig toolchain."""
     try:
         import ziglang
     except ImportError:
         raise SystemExit('Missing C compiler: pip install ziglang==0.14.1')
     zig = Path(ziglang.__file__).parent / ('zig.exe' if os.name == 'nt' else 'zig')
     env = dict(os.environ, ZIG_GLOBAL_CACHE_DIR=str(work / 'zig-global'), ZIG_LOCAL_CACHE_DIR=str(work / 'zig-local'))
-    out = {}
-    for name, sources in {'detach': ['app/detach.c'], 'resume': ['app/resume.c'],
-                          'relay': ['relay/relay.c', 'relay/filter.c']}.items():
-        target = work / name
-        subprocess.run([str(zig), 'cc', '-target', 'arm-linux-musleabi', '-Os', '-static', '-s',
-                        *sources, '-o', str(target)], cwd=ROOT, env=env, check=True)
-        out[name] = target.read_bytes()
-    return out
+    target = work / name
+    subprocess.run([str(zig), 'cc', '-target', 'arm-linux-musleabi', '-Os', '-static', '-s',
+                    *flags, *sources, '-o', str(target)], cwd=ROOT, env=env, check=True)
+    return target.read_bytes()
+
+
+def compile_native(work):
+    return {name: arm_cc(work, name, sources)
+            for name, sources in {'detach': ['app/detach.c'], 'resume': ['app/resume.c'],
+                                  'relay': ['relay/relay.c', 'relay/filter.c']}.items()}
+
+
+# Independent tile apps that open one of LG's own panels. The first app id
+# webOS accepts is used: the ids differ between webOS versions.
+SHORTCUTS = {
+    'lgsettings': ['com.palm.app.settings', 'com.webos.app.settings'],
+    'lgnotifications': ['com.webos.app.notificationcenter'],
+}
+
+
+def build_shortcut(work, folder, targets):
+    files = read_tree('shortcuts/' + folder)
+    info = json.loads(files['appinfo.json'])
+    app, version = info['id'], info['version']
+    define = '-DTARGETS=' + ','.join('"%s"' % t for t in targets)
+    files['launch'] = arm_cc(work, folder + '-launch', ['shortcuts/launch.c'], define)
+    out = {'usr/palm/applications/' + app + '/' + n: b for n, b in files.items()}
+    out['usr/palm/packages/' + app + '/packageinfo.json'] = json.dumps(
+        {'id': app, 'version': version, 'app': app}).encode()
+    return app, version, ipk(app, version, out, {'usr/palm/applications/' + app + '/launch'}, 'arm')
 
 
 def build_helper(work):
@@ -210,6 +233,11 @@ def main():
     sout = args.output / f'{SETTINGS}_{sversion}_all.ipk'
     sout.write_bytes(settings)
     print('Settings:', sout)
+    for folder, targets in SHORTCUTS.items():
+        app, version, data = build_shortcut(work, folder, targets)
+        path = args.output / f'{app}_{version}_arm.ipk'
+        path.write_bytes(data)
+        print('Shortcut:', path)
 
 
 if __name__ == '__main__':

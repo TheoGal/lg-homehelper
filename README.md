@@ -95,6 +95,24 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
   `ares-install --device tv --remove io.github.theogal.homehelper`
 - Last resort: turn Developer Mode off and restart; the TV deletes all dev apps.
 
+## Extra tiles: LG Settings and LG Notifications
+
+Two optional tiles for launchers that have no buttons for LG's own settings or
+notifications. Each is a separate package; install either, both or neither.
+They don't need Home Helper.
+
+| Package | Tile | Opens |
+| --- | --- | --- |
+| `io.github.theogal.lgsettings_1.0.0_arm.ipk` | **LG Settings** (gear) | LG's settings, the same as the gear in LG Home |
+| `io.github.theogal.lgnotifications_1.0.0_arm.ipk` | **LG Notifications** (bell) | LG's notifications |
+
+Add the tile to your launcher like any other app. It has no window of its
+own: it asks webOS to open the panel and exits, so the panel opens over what
+you were looking at. The app ids for these panels differ between webOS
+versions; LG Settings tries `com.palm.app.settings`, then
+`com.webos.app.settings`, and LG Notifications opens
+`com.webos.app.notificationcenter`.
+
 ## Notes
 
 - If Developer Mode expires, the TV removes these apps; reinstall and repeat
