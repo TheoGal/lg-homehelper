@@ -24,10 +24,12 @@ ROOT = Path(__file__).resolve().parents[1]
 HELPER = 'io.github.theogal.homehelper'
 SERVICE = HELPER + '.service'
 SETTINGS = HELPER + '.settings'
+SETTINGS_SERVICE = SETTINGS + '.service'
 APP_DIR = 'usr/palm/applications/' + HELPER
 SERVICE_DIR = 'usr/palm/services/' + SERVICE
+SETTINGS_SERVICE_DIR = 'usr/palm/services/' + SETTINGS_SERVICE
 # Controller (app) and jailed service run as different users: share the jailer group.
-SHARED_STATE = {APP_DIR + '/state', SERVICE_DIR + '/state'}
+SHARED_STATE = {APP_DIR + '/state', SERVICE_DIR + '/state', SETTINGS_SERVICE_DIR + '/state'}
 EXECUTABLES = ('detach', 'relay', 'resume')
 RESERVED = {'com.webos.app.home', 'com.webos.app.cpcover', HELPER}
 APP_ID = re.compile(r'^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$')
@@ -200,9 +202,16 @@ def build_helper(work):
 def build_settings():
     files = read_tree('settings')
     version = json.loads(files['appinfo.json'])['version']
+    # The page may only call services from its own package (webOS 23), so the
+    # read-only service it asks travels with it.
+    service = compile_js(read_tree('settings-service'))
+    if json.loads(service['package.json'])['version'] != version:
+        raise SystemExit('settings/appinfo.json and settings-service/package.json versions differ')
     out = {'usr/palm/applications/' + SETTINGS + '/' + n: b for n, b in files.items()}
+    out.update({SETTINGS_SERVICE_DIR + '/' + n: b for n, b in service.items()})
+    out[SETTINGS_SERVICE_DIR + '/state/.keep'] = b''
     out['usr/palm/packages/' + SETTINGS + '/packageinfo.json'] = json.dumps(
-        {'id': SETTINGS, 'version': version, 'app': SETTINGS}).encode()
+        {'id': SETTINGS, 'version': version, 'app': SETTINGS, 'services': [SETTINGS_SERVICE]}).encode()
     return version, ipk(SETTINGS, version, out)
 
 

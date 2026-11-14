@@ -11,7 +11,7 @@ const { spawnSync } = require('node:child_process');
 
 const app = path.join(__dirname, '../app');
 const ROOT = '/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper';
-const SHARED = '/media/developer/apps/usr/palm/services/io.github.theogal.homehelper.service/state';
+const SHARED = '/media/developer/apps/usr/palm/services/io.github.theogal.homehelper.settings.service/state';
 
 function run(withKey, params) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'helper-entry-'));

@@ -9,5 +9,8 @@
   "largeIcon": "largeIcon.png",
   "iconColor": "#241d19",
   "resolution": "1920x1080",
-  "disableBackHistoryAPI": true
+  "disableBackHistoryAPI": true,
+  "requiredACG": [
+    "application.launcher"
+  ]
 }

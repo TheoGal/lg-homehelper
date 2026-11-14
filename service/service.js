@@ -57,69 +57,13 @@ function complete(message, result) {
     );
   else message.respond({ returnValue: true, result: result });
 }
-// On newer webOS this service's sandbox cannot see the app's folder, only its
-// own. The app side (not sandboxed) writes what the settings app needs into
-// this folder (see app/shared.js): the TV's choice, the helper's status, the
-// pairing status and the app list. Nothing secret: the key stays with the app.
-var SHARED = __dirname + '/state';
-var LG_HOME = 'com.webos.app.home';
-function readShared(name) {
-  try {
-    return JSON.parse(fs.readFileSync(SHARED + '/' + name, 'utf8'));
-  } catch (e) {
-    return null;
-  }
-}
-function validId(id) {
-  return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(id);
-}
-// The running helper refreshes helper.json at least every 30 s.
-function helperStatus() {
-  var h = readShared('helper.json');
-  return h && typeof h.time === 'number' ? h : null;
-}
-function running() {
-  var h = helperStatus(),
-    age = h ? Date.now() - h.time : Infinity;
-  return !!(h && h.running === true && age >= -5000 && age < 75000);
-}
-// Mirrors app/target.js: the TV choice, then the default packaged on a PC
-// (reported by the helper), then nothing (Home goes to LG Home).
-function homeTarget() {
-  var choice = readShared('target.json'),
-    tv = choice && validId(choice.id) ? choice.id : null,
-    h = helperStatus(),
-    packaged = h && validId(h.packaged) && h.packaged !== LG_HOME ? h.packaged : null;
-  if (tv) return { id: tv === LG_HOME ? null : tv, source: 'tv', packaged: packaged };
-  return { id: packaged, source: packaged ? 'packaged' : 'none', packaged: packaged };
-}
-// Paired: as last reported by the helper, or a pairing that just finished.
-function pairing() {
-  var h = helperStatus(),
-    status = readShared('pair-status.json'),
-    justPaired =
-      !!status &&
-      (status.state === 'paired' || status.state === 'already-paired') &&
-      (!h || status.time >= h.time);
-  return { paired: !!(h && h.paired) || justPaired, status: status };
-}
-service.register('target', function (m) {
-  m.respond({
-    returnValue: true,
-    target: homeTarget(),
-    running: running(),
-    pairing: pairing()
-  });
-});
 service.register('status', function (m) {
   try {
     m.respond({
       returnValue: true,
-      target: homeTarget(),
       state: read(),
       boot: boot(),
       blocked: blocked(),
-      running: running(),
       callback: readDebug('/tmp/homehelper-boot-callback.json'),
       complete: readDebug('/tmp/homehelper-boot-complete.json')
     });
@@ -226,10 +170,3 @@ function blocked() {
     }
   });
 }
-
-service.register('listApps', function (message) {
-  var list = readShared('app-list.json');
-  if (list && Array.isArray(list.apps) && list.apps.length)
-    message.respond({ returnValue: true, apps: list.apps, time: list.time });
-  else message.respond({ returnValue: false, errorText: 'App list not ready yet' });
-});

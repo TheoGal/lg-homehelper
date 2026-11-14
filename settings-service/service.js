@@ -1,0 +1,68 @@
+'use strict';
+// Home Helper Settings' own service. webOS 23 only lets a web app call services
+// from its own package, so the settings page cannot ask the helper's service.
+// This one only reads what the helper publishes into its folder (see
+// app/shared.js); it changes nothing. The page changes things by launching the
+// helper with parameters.
+var fs = require('fs'),
+  Service = require('webos-service');
+var service = new Service('io.github.theogal.homehelper.settings.service');
+// The sandbox only sees this service's own folder. The helper (not sandboxed)
+// writes here: the TV's choice, its status, the pairing status and the app
+// list. Nothing secret: the pairing key stays with the helper.
+var SHARED = __dirname + '/state';
+var LG_HOME = 'com.webos.app.home';
+function readShared(name) {
+  try {
+    return JSON.parse(fs.readFileSync(SHARED + '/' + name, 'utf8'));
+  } catch (e) {
+    return null;
+  }
+}
+function validId(id) {
+  return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(id);
+}
+// The running helper refreshes helper.json at least every 30 s.
+function helperStatus() {
+  var h = readShared('helper.json');
+  return h && typeof h.time === 'number' ? h : null;
+}
+function running() {
+  var h = helperStatus(),
+    age = h ? Date.now() - h.time : Infinity;
+  return !!(h && h.running === true && age >= -5000 && age < 75000);
+}
+// Mirrors app/target.js: the TV choice, then the default packaged on a PC
+// (reported by the helper), then nothing (Home goes to LG Home).
+function homeTarget() {
+  var choice = readShared('target.json'),
+    tv = choice && validId(choice.id) ? choice.id : null,
+    h = helperStatus(),
+    packaged = h && validId(h.packaged) && h.packaged !== LG_HOME ? h.packaged : null;
+  if (tv) return { id: tv === LG_HOME ? null : tv, source: 'tv', packaged: packaged };
+  return { id: packaged, source: packaged ? 'packaged' : 'none', packaged: packaged };
+}
+// Paired: as last reported by the helper, or a pairing that just finished.
+function pairing() {
+  var h = helperStatus(),
+    status = readShared('pair-status.json'),
+    justPaired =
+      !!status &&
+      (status.state === 'paired' || status.state === 'already-paired') &&
+      (!h || status.time >= h.time);
+  return { paired: !!(h && h.paired) || justPaired, status: status };
+}
+service.register('target', function (m) {
+  m.respond({
+    returnValue: true,
+    target: homeTarget(),
+    running: running(),
+    pairing: pairing()
+  });
+});
+service.register('listApps', function (message) {
+  var list = readShared('app-list.json');
+  if (list && Array.isArray(list.apps) && list.apps.length)
+    message.respond({ returnValue: true, apps: list.apps, time: list.time });
+  else message.respond({ returnValue: false, errorText: 'App list not ready yet' });
+});

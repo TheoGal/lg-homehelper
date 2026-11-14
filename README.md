@@ -130,9 +130,6 @@ launchHelper({ nativeHomeStart: true });
 | `nativeHomeStart: true` | Starts the helper (also after a stop). The first time, the TV asks the user to allow it; if they don't, it doesn't start |
 | `nativeHomeStop: true` | Stops the helper; it stays off until started again |
 
-Status (current target, running, allowed by the TV) is available from
-`luna://io.github.theogal.homehelper.service/target`.
-
 When opened again by Home, your launcher receives a normal relaunch
 (`webOSRelaunch`) with no special parameters. The Home key itself does not
 reach your page.

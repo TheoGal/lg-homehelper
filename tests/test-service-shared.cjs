@@ -22,7 +22,7 @@ const fakefs = {
   },
   writeFileSync() {}
 };
-vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../service/service.js'), 'utf8'), {
+vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../settings-service/service.js'), 'utf8'), {
   console,
   Date: { now: () => now },
   __dirname: '/service',

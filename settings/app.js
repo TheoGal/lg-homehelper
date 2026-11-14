@@ -49,10 +49,11 @@
   }
 
   function refreshTarget() {
-    call('luna://' + HELPER + '.service/target', {}, function (r) {
+    call('luna://' + HELPER + '.settings.service/target', {}, function (r) {
       if (!r || !r.returnValue || !r.target) {
         $('currentTitle').textContent = 'Unknown';
-        $('currentMeta').textContent = 'Home Helper service did not answer. Is Home Helper installed?';
+        $('currentMeta').textContent = 'Home Helper service did not answer' +
+          (r && r.errorText ? ' (' + r.errorText + ')' : r ? '' : ' (no reply)') + '. Is Home Helper installed?';
         $('helperState').textContent = '';
         running = false;
         $('power').textContent = 'Start Home Helper';
@@ -145,10 +146,11 @@
   // Helper service: the running helper publishes the list over the TV's pairing
   // connection. Right after Start that takes a few seconds, so keep asking for
   // up to 30 s. The platform's own lists are only a last resort.
-  var appsLoaded = false, listTries = 0;
+  var appsLoaded = false, listTries = 0, lastListError = '';
   function loadApps() {
-    call('luna://' + HELPER + '.service/listApps', {}, function (r) {
+    call('luna://' + HELPER + '.settings.service/listApps', {}, function (r) {
       if (r && r.returnValue && r.apps && r.apps.length) { listTries = 0; return done(r.apps); }
+      lastListError = r ? (r.errorText || '') : 'no reply';
       if (++listTries < 15) {
         note('Finding your apps...');
         setTimeout(loadApps, 2000);
@@ -161,7 +163,8 @@
           if (r3 && r3.returnValue && r3.apps && r3.apps.length) return done(r3.apps);
           appsLoaded = false;
           done([]);
-          note('Could not read your apps right now. Close this screen and open it again to retry.');
+          note('Could not read your apps right now' + (lastListError ? ' (' + lastListError + ')' : '') +
+            '. Close this screen and open it again to retry.');
         });
       });
     });

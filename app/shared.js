@@ -1,11 +1,11 @@
 'use strict';
-// Files the settings app needs, written into the service's own state folder.
-// The service runs in a sandbox that cannot see the app's folder on newer
-// webOS, but it can read its own; the app side is not sandboxed and writes
-// there. Nothing secret goes here: the pairing key stays in the app's folder.
+// Files the settings app needs, written into the settings package's service
+// folder. webOS 23 only lets the settings page call services from its own
+// package, and that service's sandbox only sees its own folder; the helper is
+// not sandboxed and writes there. Nothing secret goes here: the pairing key stays in the app's folder.
 var fs = require('fs');
 var DIR =
-  '/media/developer/apps/usr/palm/services/io.github.theogal.homehelper.service/state';
+  '/media/developer/apps/usr/palm/services/io.github.theogal.homehelper.settings.service/state';
 
 function write(name, value, directory) {
   var path = (directory || DIR) + '/' + name,
