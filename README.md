@@ -43,7 +43,8 @@ After installing you'll see **two tiles** in LG Home: **Home Helper** and
 **Home Helper Settings**. Both open the settings screen. This is deliberate:
 apps that install invisibly are annoying, because you can't see they're there
 or remove them from the TV like any other app. Both parts show up, so both can
-be found and uninstalled.
+be found and uninstalled from LG's own app menu. (webOS Dev Manager installs
+apps but doesn't offer a way to remove them.)
 
 ## Set up
 
@@ -83,8 +84,8 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
   times within two seconds** (the emergency stop). Either way it stays off
   until you start it again from the settings app.
 - To remove it cleanly, choose **Stop Home Helper** first, then uninstall both
-  apps like any other app on the TV, or from webOS Dev Manager. Stopping also
-  removes the helper's start-at-boot task, so nothing is left behind.
+  apps from LG's app menu like any other app. Stopping also removes the
+  helper's start-at-boot task, so nothing is left behind.
 - If the TV is hard to use, remove it from a computer, then unplug the TV for
   30 seconds:
   `ares-install --device tv --remove io.github.theogal.homehelper`
@@ -178,7 +179,7 @@ Home Helper.
 | `io.github.theogal.lglivetv_1.0.0_arm.ipk` | **Live TV** (TV) | The TV tuner (Live TV source) |
 
 Install them the same way as Home Helper, then add the tiles to your launcher
-like any other app. A tile has no window of its own: it asks webOS to open the
+like any other app. Remove them from LG's app menu. A tile has no window of its own: it asks webOS to open the
 LG app and exits, so nothing keeps running. The app ids differ between webOS
 versions; LG Settings tries `com.palm.app.settings`, then
 `com.webos.app.settings`. LG Quick Settings opens `com.webos.app.quicksettings`,
