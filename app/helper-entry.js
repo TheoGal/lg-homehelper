@@ -82,11 +82,6 @@ if (params.nativeHomeStop === true) {
       process.exit(0);
     }
   );
-} else if (params.nativeHomePair === true) {
-  // Pairing waits for "Allow" on the TV; detach already runs us in our own session.
-  require('./pair')(root + '/state', function (ok) {
-    process.exit(ok ? 0 : 1);
-  });
 } else if (starting) {
   var start = { nativeHomeAuto: params.nativeHomeAuto === true };
   if (typeof params.nativeHomeSetup === 'string')
@@ -100,6 +95,18 @@ if (params.nativeHomeStop === true) {
     process.exit(1);
   });
   child.unref();
+  // A start someone asked for also pairs, so apps can be listed and the helper
+  // can see which app is in front. Never at boot: nobody is there to answer.
+  // With a key already saved this returns at once, without a prompt.
+  if (params.nativeHomeStart === true || params.nativeHomePair === true)
+    require('./pair')(root + '/state', function () {
+      process.exit(0);
+    });
+} else if (params.nativeHomePair === true) {
+  // "Pair again": waits for "Allow" on the TV; detach runs us in our own session.
+  require('./pair')(root + '/state', function (ok) {
+    process.exit(ok ? 0 : 1);
+  });
 } else if (saved !== null) {
   process.exit(saved ? 0 : 1);
 } else {

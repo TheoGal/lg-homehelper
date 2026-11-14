@@ -24,7 +24,7 @@ You need a TV with **Developer Mode** on, and **BOTH** packages from the
 | Package | What it is |
 | --- | --- |
 | `io.github.theogal.homehelper_1.0.0_arm.ipk` | **Home Helper**: the background helper that catches the Home button |
-| `io.github.theogal.homehelper.settings_1.0.0_all.ipk` | **Home Helper Settings**: pick the app, start the helper, pair |
+| `io.github.theogal.homehelper.settings_1.0.0_all.ipk` | **Home Helper Settings**: start the helper and pick the app |
 
 **With webOS Dev Manager** (easiest): install
 [webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop) on your
@@ -50,18 +50,16 @@ offer to remove apps installed from a loose .ipk file.)
 
 Open **Home Helper Settings** on the TV:
 
-1. Choose **Return to this app when others close**, then **Allow** on the
-   prompt the TV shows. This pairing lets Home Helper list your apps (webOS
-   doesn't let sideloaded apps list them otherwise) and bring you back to
-   your app when another app closes
+1. Choose **Start Home Helper**. The first time, your TV asks you to allow
+   it: choose **Allow**. Home Helper needs this to list your apps and to bring
+   you back to your app when another app closes
 2. Pick the app the Home button should open (right side, OK). The first
-   entry, **LG Home**, turns the redirect off again. Without pairing you can
-   type an app id instead
-3. Choose **Start Home Helper**
+   entry, **LG Home**, turns the redirect off again
 
-After that the helper starts by itself on every boot.
+After that the helper starts by itself on every boot. If you chose not to
+allow it, or the TV was reset, the settings app shows a **Pair again** button.
 
-![Home Helper Settings with Hearth chosen and pairing on](docs/settings-app-chosen.png)
+![Home Helper Settings with Hearth chosen](docs/settings-app-chosen.png)
 
 Use the arrow keys to move between the buttons on the left and the app list on
 the right; OK selects.
@@ -71,7 +69,6 @@ From a computer instead:
 ```
 ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeTarget":"com.plexapp.plex"}'
 ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStart":true}'
-ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomePair":true}'
 ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}'
 ```
 
@@ -97,8 +94,8 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
   the setup.
 - At power-on you may briefly see LG Home before your app opens: the helper
   starts with the TV and then switches to your app.
-- Back is never changed. With pairing on, when an app has used up its own
-  Back steps and closes, you land in your chosen app instead of LG Home.
+- Back is never changed. When an app has used up its own Back steps and
+  closes, you land in your chosen app instead of LG Home.
   Holding Back does whatever your TV normally does (accessibility zoom on
   newer models); Home Helper doesn't act on it.
 - Works with the Magic Remote. A basic IR remote also works, with a short
@@ -128,9 +125,9 @@ launchHelper({ nativeHomeStart: true });
 | `nativeHomeTarget: "<app id>"` | Home opens that app |
 | `nativeHomeTarget: "com.webos.app.home"` | Home goes to LG Home (redirect off) |
 | `nativeHomeTarget: ""` | Clears the TV choice (packaged default, else LG Home) |
-| `nativeHomeStart: true` | Starts the helper (also after a stop) |
+| `nativeHomeStart: true` | Starts the helper (also after a stop). The first time, the TV asks the user to allow it |
 | `nativeHomeStop: true` | Stops the helper; it stays off until started again |
-| `nativeHomePair: true` | Asks the TV to pair, for returning after apps close |
+| `nativeHomePair: true` | Asks the TV to allow the helper again (after it was declined or the TV was reset) |
 
 Status (current target, running, paired) is available from
 `luna://io.github.theogal.homehelper.service/target`.

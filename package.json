@@ -5,7 +5,7 @@
   "description": "Make the LG webOS remote's Home button open an app of your choice",
   "scripts": {
     "build": "python3 scripts/build.py",
-    "test": "node tests/test-target.cjs && node tests/test-home-control.cjs && node tests/test-service-boot-task.cjs",
+    "test": "node tests/test-target.cjs && node tests/test-home-control.cjs && node tests/test-service-boot-task.cjs && node tests/test-screen-watch-revoked.cjs",
     "test:native": "sh scripts/test-native.sh"
   },
   "devDependencies": {

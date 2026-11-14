@@ -83,40 +83,40 @@
     });
   }
 
+  // Pairing happens on Start (and "Pair again"); users only see what to do next.
   var pairPoll = null, pairStarted = 0;
-  var PAIR_REASONS = { timeout: 'no answer in time', rejected: 'the TV refused',
-    connect: 'could not reach the TV service', closed: 'connection closed',
-    write: 'could not save the key', 'no-network': 'no network', 'no-key': 'no key received' };
+  function note(text) {
+    $('listNote').textContent = text || '';
+    $('listNote').style.display = text ? '' : 'none';
+  }
   function showPairing(p) {
-    var el = $('pairState'), s = p && p.status;
+    var s = p && p.status, pair = $('pair');
+    var waiting = s && s.state === 'waiting' && pairStarted && s.time >= pairStarted - 5000;
     if (p && p.paired) {
-      el.textContent = 'Returns here when an app closes';
-      el.style.color = '#9fd59a';
-      $('pair').textContent = 'Return after apps close: on';
+      pair.style.display = 'none';
       stopPairPoll();
-      if (!appsLoaded) { appsLoaded = true; message(''); loadApps(); }
-    } else if (s && s.state === 'waiting' && s.time >= pairStarted - 5000) {
-      el.textContent = 'Waiting: choose Allow on the TV prompt';
-      el.style.color = '#f0b46c';
-    } else if (s && s.state === 'failed' && pairStarted && s.time >= pairStarted - 5000) {
-      el.textContent = 'Pairing failed: ' + (PAIR_REASONS[s.reason] || s.reason || 'unknown') + '. Try again.';
-      el.style.color = '#f08a6c';
-      stopPairPoll();
-    } else if (p) {
-      el.textContent = 'Not paired: no return after apps close';
-      el.style.color = '#b9aea4';
+      if (!appsLoaded) { appsLoaded = true; note(''); loadApps(); }
+      return;
+    }
+    appsLoaded = false;
+    if (waiting) {
+      pair.style.display = 'none';
+      note('Choose Allow on your TV to find your apps.');
+    } else if (running) {
+      pair.style.display = '';
+      note('Choose Pair again, then Allow on your TV, to find your apps. Or type an app id.');
+    } else {
+      pair.style.display = 'none';
+      note('Start Home Helper to find your apps. Your TV will ask you to allow it once.');
     }
   }
   function stopPairPoll() { if (pairPoll) { clearInterval(pairPoll); pairPoll = null; } }
-  function startPairing() {
+  // Check every 2 s until the TV's prompt is answered (it gives up after 90 s).
+  function watchPairing() {
     pairStarted = Date.now();
-    message('A prompt will appear on the TV. Choose Allow with the remote.');
-    launch(HELPER, { nativeHomePair: true }, function (ok) {
-      if (!ok) { message('Could not reach Home Helper. Is it installed?'); return; }
-      stopPairPoll();
-      pairPoll = setInterval(refreshTarget, 2000);
-      setTimeout(stopPairPoll, 100000);
-    });
+    stopPairPoll();
+    pairPoll = setInterval(refreshTarget, 2000);
+    setTimeout(stopPairPoll, 100000);
   }
 
   function setTarget(id) {
@@ -156,8 +156,7 @@
           if (r3 && r3.returnValue && r3.apps && r3.apps.length) return done(r3.apps);
           appsLoaded = false;
           done([]);
-          message('To list your apps, choose "Return to this app when others close" and Allow. ' +
-            'Or type an app id above.');
+          note('Could not read your apps. You can type an app id instead.');
         });
       });
     });
@@ -229,6 +228,7 @@
       message('Starting...');
       launch(HELPER, { nativeHomeStart: true }, function (ok) {
         message(ok ? 'Home Helper started.' : 'Could not start Home Helper.');
+        if (ok) { watchPairing(); refreshTarget(); }
         setTimeout(refreshTarget, 1500);
         setTimeout(refreshTarget, 4000);
       });
@@ -238,7 +238,11 @@
         if (!ok) message('Could not open LG Home.');
       });
     } else if (el.id === 'pair') {
-      startPairing();
+      launch(HELPER, { nativeHomePair: true }, function (ok) {
+        if (!ok) { message('Could not reach Home Helper. Is it installed?'); return; }
+        watchPairing();
+        refreshTarget();
+      });
     } else if (el.id === 'reset') {
       setTarget('');
     } else if (el.id === 'manual') {

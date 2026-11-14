@@ -251,10 +251,14 @@ module.exports = function (data, log, onForeground, onReset, onPower) {
         if (/^(400|401|403|404)\b/.test(String(m.error))) closed = true;
         s.terminate();
       } else if (m.payload && m.payload.pairingType) {
-        // A revoked key must not leave an unattended pairing flow running.
+        // The TV no longer accepts the key (e.g. after a reset) and wants to pair
+        // again. Never leave that prompt running unattended: drop the dead key,
+        // so the settings app offers "Pair again", and wait quietly for a new one.
         log({ event: 'screen-watch-unavailable', reason: 'pairing-required' });
+        try {
+          fs.unlinkSync(data + '/ssap-key.json');
+        } catch (ignore) {}
         registered = false;
-        closed = true;
         settle(null);
         s.terminate();
       }
