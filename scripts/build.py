@@ -157,6 +157,7 @@ def compile_native(work):
 # webOS accepts is used: the ids differ between webOS versions.
 SHORTCUTS = {
     'lgsettings': ['com.palm.app.settings', 'com.webos.app.settings'],
+    'lgquicksettings': ['com.webos.app.quicksettings'],
     'lgnotifications': ['com.webos.app.notificationcenter'],
     'lglivetv': ['com.webos.app.livetv'],
 }

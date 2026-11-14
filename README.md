@@ -170,16 +170,17 @@ python3 scripts/build.py --retarget dist/io.github.theogal.homehelper_1.0.0_arm.
 A choice made on the TV always wins over the packaged default (including
 choosing LG Home). With neither, Home goes to LG Home.
 
-## Optional extra tiles: LG Settings, LG Notifications, Live TV
+## Optional extra tiles: LG Settings, LG Quick Settings, LG Notifications, Live TV
 
-These three are **optional** and separate from Home Helper. Use them only if
+These four are **optional** and separate from Home Helper. Use them only if
 your preferred launcher doesn't offer a way to open these LG apps itself.
 Each is its own package: install any, all or none. They work with or without
 Home Helper.
 
 | Package | Tile | Opens |
 | --- | --- | --- |
-| `io.github.theogal.lgsettings_1.0.0_arm.ipk` | **LG Settings** (gear) | LG's settings, the same as the gear in LG Home |
+| `io.github.theogal.lgsettings_1.0.0_arm.ipk` | **LG Settings** (solid gear) | LG's settings, the same as the gear in LG Home |
+| `io.github.theogal.lgquicksettings_1.0.0_arm.ipk` | **LG Quick Settings** (outlined gear) | LG's Quick Settings panel, the same as a short press of the remote's settings button |
 | `io.github.theogal.lgnotifications_1.0.0_arm.ipk` | **LG Notifications** (bell) | LG's notifications |
 | `io.github.theogal.lglivetv_1.0.0_arm.ipk` | **Live TV** (TV) | The TV tuner (Live TV source) |
 
@@ -187,8 +188,9 @@ Install them the same way as Home Helper, then add the tiles to your launcher
 like any other app. A tile has no window of its own: it asks webOS to open the
 LG app and exits, so nothing keeps running. The app ids differ between webOS
 versions; LG Settings tries `com.palm.app.settings`, then
-`com.webos.app.settings`. LG Notifications opens
-`com.webos.app.notificationcenter` and Live TV opens `com.webos.app.livetv`.
+`com.webos.app.settings`. LG Quick Settings opens `com.webos.app.quicksettings`,
+LG Notifications opens `com.webos.app.notificationcenter` and Live TV opens
+`com.webos.app.livetv`.
 
 ## Credits
 
