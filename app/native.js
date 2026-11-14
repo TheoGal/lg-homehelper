@@ -423,7 +423,7 @@ function publishApps() {
             return entry;
           })
         });
-      });
+      }, { log: log });
     },
     function () {
       appsPending = false; // lastAppsAt: tried again in 15 s while still in front

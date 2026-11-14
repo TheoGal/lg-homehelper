@@ -53,3 +53,12 @@ test('TV icon files are read directly', async () => {
   const names = await run(dir, [{ id: 'f', iconUrl: file }]);
   assert.ok(names.f);
 });
+
+test('TV icon server addresses: the TV itself first, then the network address', () => {
+  assert.deepEqual(cache.candidates('http://192.168.1.28:3000/resources/ab12/icon.png'), [
+    'http://127.0.0.1:3000/resources/ab12/icon.png',
+    'https://192.168.1.28:3001/resources/ab12/icon.png',
+    'http://192.168.1.28:3000/resources/ab12/icon.png'
+  ]);
+  assert.deepEqual(cache.candidates('/usr/palm/applications/a/icon.png'), ['/usr/palm/applications/a/icon.png']);
+});

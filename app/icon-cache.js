@@ -27,7 +27,7 @@ function kind(data) {
   return '';
 }
 
-function fetchHttp(address, get, done) {
+function fetchHttp(address, get, done, why) {
   var finished = false,
     request,
     chunks = [],
@@ -42,20 +42,34 @@ function fetchHttp(address, get, done) {
     done(data || null);
   }
   var timer = setTimeout(function () {
+    why('timeout');
     finish(null);
   }, PER_ICON_MS);
   try {
-    var parsed = require('url').parse(address);
-    request = (get || require('http').get)(
-      { hostname: parsed.hostname, port: parsed.port, path: parsed.path, agent: false },
+    var parsed = require('url').parse(address),
+      secure = parsed.protocol === 'https:';
+    request = (get || require(secure ? 'https' : 'http').get)(
+      {
+        protocol: parsed.protocol,
+        hostname: parsed.hostname,
+        port: parsed.port,
+        path: parsed.path,
+        agent: false,
+        // The TV's own certificate is self-signed; only the TV's address is asked.
+        rejectUnauthorized: false
+      },
       function (r) {
         if (r.statusCode !== 200) {
+          why('status ' + r.statusCode);
           r.resume();
           return finish(null);
         }
         r.on('data', function (chunk) {
           size += chunk.length;
-          if (size > MAX_ICON) finish(null);
+          if (size > MAX_ICON) {
+            why('too large');
+            finish(null);
+          }
           else chunks.push(chunk);
         });
         r.on('end', function () {
@@ -66,12 +80,24 @@ function fetchHttp(address, get, done) {
         });
       }
     );
-    request.on('error', function () {
+    request.on('error', function (e) {
+      why((e && (e.code || e.message)) || 'error');
       finish(null);
     });
-  } catch (_) {
+  } catch (e) {
+    why((e && e.message) || 'error');
     finish(null);
   }
+}
+
+// Where the TV's /resources/ pictures can be read: the TV's plain port from the
+// TV itself (127.0.0.1:3000, Hearth's first choice), then its secure port and
+// its plain port on the network address.
+function candidates(address) {
+  var m = /^http:\/\/([^/:]+):3000(\/resources\/.*)$/.exec(address);
+  return m
+    ? ['http://127.0.0.1:3000' + m[2], 'https://' + m[1] + ':3001' + m[2], address]
+    : [address];
 }
 
 function fetchFile(path, done) {
@@ -106,7 +132,13 @@ module.exports = function (dir, apps, done, options) {
     wanted = {},
     queue = [],
     budget = MAX_TOTAL,
-    running = 0;
+    running = 0,
+    kept = 0,
+    failed = 0,
+    reasons = {};
+  function why(reason) {
+    reasons[reason] = (reasons[reason] || 0) + 1;
+  }
   apps.forEach(function (a) {
     if (!a || typeof a.iconUrl !== 'string') return;
     var name = nameFor(a.iconUrl);
@@ -124,21 +156,39 @@ module.exports = function (dir, apps, done, options) {
     });
   } catch (_) {}
   function next() {
-    if (!queue.length && !running) return done(names);
+    if (!queue.length && !running) {
+      if ((kept || failed) && options.log)
+        options.log({ event: 'icons', kept: kept, failed: failed, reasons: reasons });
+      return done(names);
+    }
     while (running < PARALLEL && queue.length) {
       var job = queue.shift();
       running++;
       (function (job) {
+        var tries = candidates(job.address);
         function got(data) {
+          if (data && !kind(data)) {
+            why('not a picture');
+            data = null;
+          }
+          if (!data && tries.length) return attempt();
           running--;
-          if (data && kind(data) && data.length <= budget && store(dir, job.name, data)) {
+          if (data && data.length <= budget && store(dir, job.name, data)) {
             budget -= data.length;
             names[job.id] = job.name;
-          }
+            kept++;
+            if (via) why('via ' + via);
+          } else failed++;
           next();
         }
-        if (/^http:\/\//.test(job.address)) fetchHttp(job.address, options.get, got);
-        else fetchFile(job.address, got);
+        var via = '';
+        function attempt() {
+          var address = tries.shift();
+          via = (/^(https?:\/\/[^/]+)/.exec(address) || [])[1] || 'file';
+          if (/^https?:\/\//.test(address)) fetchHttp(address, options.get, got, why);
+          else fetchFile(address, got);
+        }
+        attempt();
       })(job);
     }
   }
@@ -146,3 +196,4 @@ module.exports = function (dir, apps, done, options) {
 };
 module.exports.nameFor = nameFor;
 module.exports.kind = kind;
+module.exports.candidates = candidates;
