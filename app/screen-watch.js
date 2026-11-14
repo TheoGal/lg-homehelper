@@ -4,7 +4,7 @@ var fs = require('fs'),
   WebSocket = require('./websocket');
 // Local self-connection: the TV rejects loopback, but accepts its own LAN address.
 // Never accepts a remote endpoint or launches anything itself.
-module.exports = function (data, log, onForeground, onReset, onPower) {
+module.exports = function (data, log, onForeground, onReset, onPower, onRevoked) {
   var closed = false,
     socket = null,
     retry = null,
@@ -251,9 +251,9 @@ module.exports = function (data, log, onForeground, onReset, onPower) {
         if (/^(400|401|403|404)\b/.test(String(m.error))) closed = true;
         s.terminate();
       } else if (m.payload && m.payload.pairingType) {
-        // The TV no longer accepts the key (e.g. after a reset) and wants to pair
-        // again. Never leave that prompt running unattended: drop the dead key,
-        // so the settings app offers "Pair again", and wait quietly for a new one.
+        // The TV no longer accepts the key and wants to pair again. Never leave
+        // that prompt running unattended: drop the dead key and tell the
+        // controller, which stops (no pairing, no helper). Start pairs again.
         log({ event: 'screen-watch-unavailable', reason: 'pairing-required' });
         try {
           fs.unlinkSync(data + '/ssap-key.json');
@@ -261,6 +261,7 @@ module.exports = function (data, log, onForeground, onReset, onPower) {
         registered = false;
         settle(null);
         s.terminate();
+        if (onRevoked) onRevoked();
       }
     });
     s.on('error', function (e) {

@@ -1,7 +1,7 @@
 'use strict';
 // When the TV rejects the saved key (e.g. after a reset) it answers with a new
-// pairing prompt. The helper must delete the dead key, so the settings app
-// offers "Pair again", and must not reconnect into an unattended prompt.
+// pairing prompt. The helper must delete the dead key, tell the controller to
+// stop (no pairing, no helper), and not reconnect into an unattended prompt.
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
@@ -13,6 +13,7 @@ const unlinked = [];
 const sockets = [];
 const timers = [];
 const logs = [];
+let revoked = 0;
 
 class WS extends EventEmitter {
   constructor(url) {
@@ -60,7 +61,7 @@ vm.runInNewContext(
   fs.readFileSync(path.join(__dirname, '../app/screen-watch.js'), 'utf8'),
   sandbox
 );
-const watcher = sandbox.module.exports('/state', (e) => logs.push(e), () => {}, () => {}, () => {});
+const watcher = sandbox.module.exports('/state', (e) => logs.push(e), () => {}, () => {}, () => {}, () => revoked++);
 
 assert.equal(sockets.length, 1, 'connects with the saved key');
 const s = sockets[0];
@@ -72,6 +73,7 @@ s.emit('message', JSON.stringify({ type: 'response', id: 'register', payload: { 
 assert.deepEqual(unlinked, ['/state/ssap-key.json'], 'the dead key is deleted');
 assert.ok(s.ended, 'the prompting connection is closed');
 assert.ok(logs.some((e) => e.reason === 'pairing-required'));
+assert.equal(revoked, 1, 'the controller is told to stop');
 
 // Run every scheduled retry: without a key it must never open a new connection.
 for (let i = 0; i < 5 && timers.length; i++) timers.splice(0).forEach((t) => t.fn());

@@ -83,30 +83,28 @@
     });
   }
 
-  // Pairing happens on Start (and "Pair again"); users only see what to do next.
+  // No pairing, no helper: Start pairs first (the TV asks once) and only then
+  // starts. Users only see what to do next, never the pairing itself.
   var pairPoll = null, pairStarted = 0;
   function note(text) {
     $('listNote').textContent = text || '';
     $('listNote').style.display = text ? '' : 'none';
   }
   function showPairing(p) {
-    var s = p && p.status, pair = $('pair');
-    var waiting = s && s.state === 'waiting' && pairStarted && s.time >= pairStarted - 5000;
+    var s = p && p.status;
+    var recent = s && pairStarted && s.time >= pairStarted - 5000;
     if (p && p.paired) {
-      pair.style.display = 'none';
       stopPairPoll();
       if (!appsLoaded) { appsLoaded = true; note(''); loadApps(); }
       return;
     }
     appsLoaded = false;
-    if (waiting) {
-      pair.style.display = 'none';
-      note('Choose Allow on your TV to find your apps.');
-    } else if (running) {
-      pair.style.display = '';
-      note('Choose Pair again, then Allow on your TV, to find your apps. Or type an app id.');
+    if (recent && s.state === 'waiting') {
+      note('Choose Allow on your TV to start Home Helper.');
+    } else if (recent && s.state === 'failed') {
+      stopPairPoll();
+      note('Your TV did not allow Home Helper, so it was not started. Choose Start and Allow to try again.');
     } else {
-      pair.style.display = 'none';
       note('Start Home Helper to find your apps. Your TV will ask you to allow it once.');
     }
   }
@@ -156,7 +154,7 @@
           if (r3 && r3.returnValue && r3.apps && r3.apps.length) return done(r3.apps);
           appsLoaded = false;
           done([]);
-          note('Could not read your apps. You can type an app id instead.');
+          note('Could not read your apps right now. Close this screen and open it again to retry.');
         });
       });
     });
@@ -210,8 +208,7 @@
     for (var s = 0; s < side.length; s++)
       side[s].className = side[s].className.replace(/\s*focus/g, '') +
         (zone === 'side' && s === sideIndex ? ' focus' : '');
-    if (zone === 'side' && side[sideIndex].id === 'manual') side[sideIndex].focus();
-    else if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+    if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
   function activateSide() {
@@ -227,7 +224,7 @@
     } else if (el.id === 'power') {
       message('Starting...');
       launch(HELPER, { nativeHomeStart: true }, function (ok) {
-        message(ok ? 'Home Helper started.' : 'Could not start Home Helper.');
+        message(ok ? '' : 'Could not start Home Helper.');
         if (ok) { watchPairing(); refreshTarget(); }
         setTimeout(refreshTarget, 1500);
         setTimeout(refreshTarget, 4000);
@@ -237,19 +234,8 @@
       launch(LG_HOME, null, function (ok) {
         if (!ok) message('Could not open LG Home.');
       });
-    } else if (el.id === 'pair') {
-      launch(HELPER, { nativeHomePair: true }, function (ok) {
-        if (!ok) { message('Could not reach Home Helper. Is it installed?'); return; }
-        watchPairing();
-        refreshTarget();
-      });
     } else if (el.id === 'reset') {
       setTarget('');
-    } else if (el.id === 'manual') {
-      var v = el.value.replace(/^\s+|\s+$/g, '');
-      if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(v)) { message('That does not look like an app id.'); return; }
-      if (HIDDEN.indexOf(v) >= 0) { message('That app cannot be the Home target.'); return; }
-      setTarget(v);
     }
   }
 

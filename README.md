@@ -56,8 +56,10 @@ Open **Home Helper Settings** on the TV:
 2. Pick the app the Home button should open (right side, OK). The first
    entry, **LG Home**, turns the redirect off again
 
-After that the helper starts by itself on every boot. If you chose not to
-allow it, or the TV was reset, the settings app shows a **Pair again** button.
+After that the helper starts by itself on every boot. Home Helper only runs
+while your TV allows it: if you choose not to, it doesn't start, and choosing
+**Start Home Helper** again asks again. The first start needs the TV to be
+online.
 
 ![Home Helper Settings with Hearth chosen](docs/settings-app-chosen.png)
 
@@ -125,11 +127,10 @@ launchHelper({ nativeHomeStart: true });
 | `nativeHomeTarget: "<app id>"` | Home opens that app |
 | `nativeHomeTarget: "com.webos.app.home"` | Home goes to LG Home (redirect off) |
 | `nativeHomeTarget: ""` | Clears the TV choice (packaged default, else LG Home) |
-| `nativeHomeStart: true` | Starts the helper (also after a stop). The first time, the TV asks the user to allow it |
+| `nativeHomeStart: true` | Starts the helper (also after a stop). The first time, the TV asks the user to allow it; if they don't, it doesn't start |
 | `nativeHomeStop: true` | Stops the helper; it stays off until started again |
-| `nativeHomePair: true` | Asks the TV to allow the helper again (after it was declined or the TV was reset) |
 
-Status (current target, running, paired) is available from
+Status (current target, running, allowed by the TV) is available from
 `luna://io.github.theogal.homehelper.service/target`.
 
 When opened again by Home, your launcher receives a normal relaunch

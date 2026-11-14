@@ -56,6 +56,14 @@ function launchApp(id, launchParams, done) {
     }
   );
 }
+function hasKey() {
+  try {
+    var key = JSON.parse(fs.readFileSync(root + '/state/ssap-key.json', 'utf8'));
+    return !!(key && typeof key.key === 'string' && key.key);
+  } catch (e) {
+    return false;
+  }
+}
 var saved = null;
 if (typeof params.nativeHomeTarget === 'string')
   saved = saveTarget(params.nativeHomeTarget);
@@ -83,30 +91,33 @@ if (params.nativeHomeStop === true) {
     }
   );
 } else if (starting) {
-  var start = { nativeHomeAuto: params.nativeHomeAuto === true };
-  if (typeof params.nativeHomeSetup === 'string')
-    start.nativeHomeSetup = params.nativeHomeSetup;
-  var child = require('child_process').spawn(
-    root + '/detach',
-    [JSON.stringify(start), '--controller'],
-    { detached: true, stdio: 'ignore' }
-  );
-  child.on('error', function () {
-    process.exit(1);
-  });
-  child.unref();
-  // A start someone asked for also pairs, so apps can be listed and the helper
-  // can see which app is in front. Never at boot: nobody is there to answer.
-  // With a key already saved this returns at once, without a prompt.
-  if (params.nativeHomeStart === true || params.nativeHomePair === true)
-    require('./pair')(root + '/state', function () {
-      process.exit(0);
+  // No pairing, no helper: it needs the pairing to see which app is in front.
+  // A start someone asked for pairs first (the TV asks once) and only starts
+  // after Allow. A boot start without a key does nothing: nobody can answer.
+  var spawnController = function () {
+    var start = { nativeHomeAuto: params.nativeHomeAuto === true };
+    if (typeof params.nativeHomeSetup === 'string')
+      start.nativeHomeSetup = params.nativeHomeSetup;
+    var child = require('child_process').spawn(
+      root + '/detach',
+      [JSON.stringify(start), '--controller'],
+      { detached: true, stdio: 'ignore' }
+    );
+    child.on('error', function () {
+      process.exit(1);
     });
-} else if (params.nativeHomePair === true) {
-  // "Pair again": waits for "Allow" on the TV; detach runs us in our own session.
-  require('./pair')(root + '/state', function (ok) {
-    process.exit(ok ? 0 : 1);
-  });
+    child.unref();
+  };
+  if (hasKey()) spawnController();
+  else if (params.nativeHomeAuto === true) process.exit(0);
+  else
+    require('./pair')(root + '/state', function (ok) {
+      if (ok) spawnController();
+      // Give the spawn a moment before this short-lived process exits.
+      setTimeout(function () {
+        process.exit(ok ? 0 : 1);
+      }, ok ? 200 : 0);
+    });
 } else if (saved !== null) {
   process.exit(saved ? 0 : 1);
 } else {

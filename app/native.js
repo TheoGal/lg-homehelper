@@ -1342,5 +1342,15 @@ var screenWatch = require('./screen-watch')(
       resumeRetries = 0;
       lgHomeSince = lastForeground === 'com.webos.app.home' ? now : null;
     }
+  },
+  function () {
+    // The TV no longer accepts the pairing: stop the same way Stop does. Start
+    // in the settings app asks the TV again; boot never starts without a key.
+    log({ event: 'pairing-revoked-stop' });
+    try {
+      require('./state-permissions').requestStop(data);
+    } catch (e) {
+      log({ event: 'pairing-revoked-stop-error', error: String(e) });
+    }
   }
 );
