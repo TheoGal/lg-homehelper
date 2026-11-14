@@ -9,6 +9,5 @@
   "largeIcon": "largeIcon.png",
   "iconColor": "#241d19",
   "resolution": "1920x1080",
-  "disableBackHistoryAPI": true,
-  "requiredPermissions": ["applications.query", "applications.operation"]
+  "disableBackHistoryAPI": true
 }

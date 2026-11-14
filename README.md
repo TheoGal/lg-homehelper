@@ -49,21 +49,14 @@ be found and uninstalled.
 
 Open **Home Helper Settings** on the TV:
 
-1. Pick the app the Home button should open (right side, OK). The first
-   entry, **LG Home**, turns the redirect off again
-2. Choose **Start Home Helper**
-3. Optional: choose **Return to this app when others close**, then **Allow**
-   on the prompt the TV shows
-
-**Open LG Home** takes you to LG Home once, without changing your choice: the
-Home button keeps opening your app.
-
-The first button follows the helper's state: **Start Home Helper** while
-it's off, **Stop Home Helper** while it runs. Stopping turns it off
-completely: the remote is left alone and it stays off across restarts until
-you start it again.
-Picking **LG Home** in the list is different: the helper keeps running and
-simply lets the Home button through.
+1. Choose **Return to this app when others close**, then **Allow** on the
+   prompt the TV shows. This pairing lets Home Helper list your apps (webOS
+   doesn't let sideloaded apps list them otherwise) and bring you back to
+   your app when another app closes
+2. Pick the app the Home button should open (right side, OK). The first
+   entry, **LG Home**, turns the redirect off again. Without pairing you can
+   type an app id instead
+3. Choose **Start Home Helper**
 
 After that the helper starts by itself on every boot.
 

@@ -94,6 +94,7 @@
       el.style.color = '#9fd59a';
       $('pair').textContent = 'Return after apps close: on';
       stopPairPoll();
+      if (!appsLoaded) { appsLoaded = true; message(''); loadApps(); }
     } else if (s && s.state === 'waiting' && s.time >= pairStarted - 5000) {
       el.textContent = 'Waiting: choose Allow on the TV prompt';
       el.style.color = '#f0b46c';
@@ -142,20 +143,26 @@
     apps.unshift({ id: LG_HOME, title: 'LG Home', icon: '', note: 'no redirect' });
   }
 
-  // Try the platform's own lists first, then the Helper service's inventory.
+  // Sideloaded web apps may not list apps themselves on newer webOS, so ask the
+  // Helper service first: it reads the list over the TV's pairing connection.
+  // The platform's own lists are only a fallback for TVs that allow them.
+  var appsLoaded = false;
   function loadApps() {
-    call('luna://com.webos.applicationManager/listLaunchPoints', {}, function (r) {
-      if (r && r.returnValue && r.launchPoints && r.launchPoints.length) return done(r.launchPoints);
-      call('luna://com.webos.applicationManager/listApps', {}, function (r2) {
-        if (r2 && r2.returnValue && r2.apps && r2.apps.length) return done(r2.apps);
-        call('luna://' + HELPER + '.service/listApps', {}, function (r3) {
-          if (r3 && r3.returnValue && r3.apps) return done(r3.apps);
+    call('luna://' + HELPER + '.service/listApps', {}, function (r) {
+      if (r && r.returnValue && r.apps && r.apps.length) return done(r.apps);
+      call('luna://com.webos.applicationManager/listLaunchPoints', {}, function (r2) {
+        if (r2 && r2.returnValue && r2.launchPoints && r2.launchPoints.length) return done(r2.launchPoints);
+        call('luna://com.webos.applicationManager/listApps', {}, function (r3) {
+          if (r3 && r3.returnValue && r3.apps && r3.apps.length) return done(r3.apps);
+          appsLoaded = false;
           done([]);
-          message('Could not read the app list. You can still type an app id.');
+          message('To list your apps, choose "Return to this app when others close" and Allow. ' +
+            'Or type an app id above.');
         });
       });
     });
     function done(list) {
+      if (list.length) appsLoaded = true;
       addApps(list);
       render();
       refreshTarget();
