@@ -1,0 +1,309 @@
+// Real controller/policies with virtual time; only TV hardware, filesystem and Luna are substituted.
+// End-to-end controller scenarios on the real native.js (harness from Clean
+// Your TV's controller tests, MIT): choosing, changing and clearing the Home
+// app while the helper runs, the triple-Home emergency stop, and the stop
+// after the TV rejects the pairing.
+const test = require('node:test'),
+  assert = require('node:assert/strict'),
+  fs = require('node:fs'),
+  vm = require('node:vm'),
+  E = require('node:events'),
+  path = require('node:path');
+const source = path.join(__dirname, '../app');
+const dir =
+  '/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper/state/';
+const targetNow = { id: null };
+function controller({
+  blocked = false,
+  watchdog = false,
+  automatic = true,
+  setupGeneration,
+  retainedGeneration = setupGeneration,
+  homeInitiallyOff = false,
+  deferStart = false,
+  inputQuery,
+  appsConfig = '[]',
+  luna,
+  foreground
+} = {}) {
+  let now = 1000,
+    seq = 0,
+    watch,
+    exit,
+    stopReads = 0;
+  const timers = new Map(),
+    files = new Map(),
+    workers = [],
+    cleanups = [],
+    logs = [],
+    launches = [];
+  files.set(dir + 'apps.json', appsConfig);
+  if (blocked) files.set(dir + 'blocked', 'stopped');
+  if (watchdog) files.set(dir + 'watchdog', 'stopped');
+  if (retainedGeneration)
+    files.set(dir + 'stop-generation', retainedGeneration);
+  if (homeInitiallyOff)
+    files.set(dir + 'home-control.json', '{"enabled":false}');
+  const schedule = (fn, ms, repeat = 0) => {
+    const id = ++seq;
+    timers.set(id, { fn, at: now + ms, repeat });
+    return id;
+  };
+  function advance(ms) {
+    const end = now + ms;
+    while (true) {
+      let next;
+      for (const x of timers)
+        if (x[1].at <= end && (!next || x[1].at < next[1].at)) next = x;
+      if (!next) break;
+      const [id, t] = next;
+      now = t.at;
+      if (t.repeat) t.at += t.repeat;
+      else timers.delete(id);
+      t.fn();
+    }
+    now = end;
+  }
+  const fakefs = {
+    existsSync: (p) => files.has(p),
+    writeFileSync: (p, s) => files.set(p, s),
+    unlinkSync: (p) => files.delete(p),
+    chmodSync() {},
+    renameSync: (a, b) => {
+      files.set(b, files.get(a));
+      files.delete(a);
+    },
+    appendFileSync: (p, s) => logs.push(JSON.parse(s)),
+    readFileSync(p) {
+      if (p === dir + 'control.json') stopReads++;
+      if (files.has(p)) return files.get(p);
+      throw Object.assign(Error('absent'), { code: 'ENOENT' });
+    }
+  };
+  function Service() {
+    this.activityManager = { create() {} };
+    this.call = (uri, p, cb) => {
+      if (uri.endsWith('/launch')) launches.push(p.id);
+      if (luna && luna(uri, p, cb)) return;
+      cb({
+        payload: { returnValue: true, state: { enabled: true, schema: 3 } }
+      });
+    };
+  }
+  const cp = {
+    spawn(file, args) {
+      assert(file.endsWith('/relay'));
+      const c = new E();
+      c.stdout = new E();
+      c.stderr = new E();
+      c.stdin = new E();
+      c.writes = [];
+      c.kills = [];
+      c.ack = true;
+      c.args = args;
+      c.stdin.write = (b) => {
+        c.writes.push(b);
+        if (b === 'P' && c.ack) c.stdout.emit('data', Buffer.from('P\n'));
+      };
+      c.stdin.end = () => {};
+      c.kill = (s) => {
+        c.kills.push(s);
+        return true;
+      };
+      (args[0] === 'cleanup' ? cleanups : workers).push(c);
+      return c;
+    }
+  };
+  const exitSignal = {};
+  let loading = true;
+  const context = {
+    Buffer,
+    console,
+    Date: { now: () => now },
+    require(n) {
+      if (n === 'fs') return fakefs;
+      if (n === 'child_process') return cp;
+      if (n === '/usr/lib/node_modules/webos-service') return Service;
+      if (n === './home-control')
+        return require('./storage-fixture.cjs').homeControl(fakefs);
+      if (n === './state-permissions') {
+        const storage = require('./storage-fixture.cjs').create(fakefs, (d, l, init) => {
+          if (init) files.set(dir + 'control.json', '{}');
+          return true;
+        });
+        // Same three steps as the real requestStop in state-permissions.js.
+        storage.requestStop = (d) => {
+          storage.publishStopGeneration(d);
+          storage.retainStop(d);
+          files.set(d + '/control.json', '{"cmd":"stop"}');
+          return true;
+        };
+        return storage;
+      }
+      if (n === './target') {
+        const get = () => targetNow.id;
+        get.valid = (id) => typeof id === 'string' && id !== 'com.webos.app.home';
+        get.LG_HOME = 'com.webos.app.home';
+        get.resolve = () => ({ id: targetNow.id, source: targetNow.id ? 'tv' : 'none' });
+        get.refresh = get;
+        return get;
+      }
+      if (n === './app-inventory')
+        return (
+          inputQuery ||
+          (() => {
+            throw Error('unexpected inventory query');
+          })
+        );
+      if (n === './screen-watch')
+        return (d, l, fg, reset, power, revoked) => {
+          watch = { fg, reset, power, revoked };
+          return {
+            close: reset,
+            foreground:
+              foreground ||
+              function (done) {
+                done(null);
+              }
+          };
+        };
+      return require(path.join(source, n));
+    },
+    process: {
+      argv: [
+        'node',
+        'native.js',
+        JSON.stringify({
+          nativeHomeAuto: automatic,
+          nativeHomeSetup: setupGeneration
+        })
+      ],
+      pid: 1,
+      getuid: () => 5431,
+      hrtime: () => [Math.floor(now / 1000), (now % 1000) * 1e6],
+      on() {},
+      exit(c) {
+        exit = c;
+        if (loading) throw exitSignal;
+      }
+    },
+    setTimeout: (f, ms) => schedule(f, ms),
+    clearTimeout: (id) => timers.delete(id),
+    setInterval: (f, ms) => schedule(f, ms, ms),
+    clearInterval: (id) => timers.delete(id)
+  };
+  try {
+    vm.runInNewContext(
+      fs.readFileSync(path.join(source, 'native.js'), 'utf8'),
+      context
+    );
+  } catch (error) {
+    if (error !== exitSignal) throw error;
+  } finally {
+    loading = false;
+  }
+  if (exit === undefined && !deferStart) {
+    advance(automatic && !setupGeneration ? 0 : 1000);
+    workers[0].stdout.emit('data', Buffer.from('READY\n'));
+  }
+  function close(
+    code = 20,
+    signal = null,
+    worker = workers.at(-1),
+    reason = code
+  ) {
+    if (reason !== null)
+      worker.stdout.emit('data', Buffer.from('EXIT ' + reason + '\n'));
+    if (code === 20) files.set(dir + 'watchdog', 'stopped');
+    worker.emit('exit', code, signal);
+    worker.emit('close', code, signal);
+  }
+  function command(cmd) {
+    files.set(dir + 'control.json', JSON.stringify({ cmd }));
+  }
+  function cleanup(code = 0, signal = null) {
+    const c = cleanups.at(-1);
+    assert(c, 'cleanup must precede recovery');
+    c.emit('exit', code, signal);
+    c.emit('close', code, signal);
+  }
+  return {
+    advance,
+    files,
+    workers,
+    cleanups,
+    logs,
+    launches,
+    close,
+    cleanup,
+    command,
+    foreground: (id) => watch.fg(id),
+    reset: () => watch.reset(),
+    power: (p) => watch.power(p),
+    revoked: () => watch.revoked(),
+    get exit() {
+      return exit;
+    },
+    get stopReads() {
+      return stopReads;
+    }
+  };
+}
+const blocked = (c) => c.files.has(dir + 'blocked');
+// The relay is told 'E' (catch Home) or 'D' (pass Home to LG); last one wins.
+const mode = (c) => c.workers[0].writes.filter((w) => w === 'E' || w === 'D').at(-1);
+const relayLine = (c, line) => c.workers[0].stdout.emit('data', Buffer.from(line + '\n'));
+
+test('no app chosen: Home passes through to LG Home', () => {
+  targetNow.id = null;
+  const c = controller();
+  assert.equal(mode(c), 'D', 'relay must pass Home through');
+  assert(!c.launches.some((id) => id !== 'com.webos.app.home'), 'nothing launched');
+});
+
+test('picking an app while running: Home opens it; picking LG Home turns it off', () => {
+  targetNow.id = null;
+  const c = controller();
+  assert.equal(mode(c), 'D');
+  targetNow.id = 'tld.my.customlauncher';          // chosen in Home Helper Settings
+  c.advance(1500);
+  assert.equal(mode(c), 'E', 'relay must start catching Home');
+  relayLine(c, 'HOME');
+  c.advance(200);
+  assert.equal(c.launches.filter((id) => id === 'tld.my.customlauncher').length, 1, 'Home opens the chosen app');
+  targetNow.id = 'org.jellyfin.webos';             // a different app
+  c.advance(1500);
+  relayLine(c, 'HOME');
+  c.advance(200);
+  assert.equal(c.launches.at(-1), 'org.jellyfin.webos', 'Home follows the new choice');
+  targetNow.id = null;                              // LG Home picked again
+  c.advance(1500);
+  assert.equal(mode(c), 'D', 'relay passes Home through again');
+  assert.equal(c.exit, undefined, 'helper keeps running');
+});
+
+test('triple-Home emergency with an app chosen: LG Home, stays stopped', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  const c = controller();
+  assert.equal(mode(c), 'E');
+  c.close(27);
+  c.cleanup();
+  c.advance(300);
+  assert.equal(c.launches.at(-1), 'com.webos.app.home', 'returns to LG Home');
+  assert(blocked(c), 'stop latch survives restarts');
+  assert.equal(c.exit, 27);
+});
+
+test('pairing rejected while running: stops like Stop does', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  const c = controller();
+  c.revoked();
+  assert(blocked(c), 'stop latch set right away');
+  c.advance(400);
+  assert(c.workers[0].writes.includes('Q'), 'controller itself tells the relay to quit');
+  c.close(0);           // the relay exits after Q
+  c.cleanup();
+  c.advance(300);
+  assert.equal(c.launches.at(-1), 'com.webos.app.home', 'returns to LG Home');
+  assert.equal(c.exit, 0);
+});
