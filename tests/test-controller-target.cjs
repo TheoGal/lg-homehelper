@@ -353,3 +353,52 @@ test('publishes status and app list for the settings app', async () => {
   c.advance(300);
   assert.equal(sharedFile('helper.json').running, false, 'stopped published on exit');
 });
+
+// Power-on: the TV may be set to open its last input. Only LG Home is replaced.
+const opened = (c, id) => c.launches.filter((x) => x === id).length;
+test('boot into the last input: the chosen app is not opened', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  const c = controller();
+  c.foreground('com.webos.app.hdmi4');
+  c.advance(10000);
+  assert.equal(opened(c, 'tld.my.customlauncher'), 0, 'input stays on screen');
+});
+
+test('boot into LG Home: the chosen app replaces it', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  const c = controller();
+  c.foreground('com.webos.app.home');
+  c.advance(5000);
+  assert.equal(opened(c, 'tld.my.customlauncher'), 1, 'chosen app opened once');
+});
+
+test('wake into the last input: the chosen app is not opened', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  const c = controller();
+  c.foreground('com.webos.app.home');
+  c.advance(60000); // boot window over
+  c.foreground('tld.my.customlauncher');
+  const before = opened(c, 'tld.my.customlauncher');
+  c.power({ state: 'Active Standby' });
+  c.advance(2000);
+  c.power({ state: 'Active' });
+  c.advance(1000);
+  c.foreground('com.webos.app.hdmi4');
+  c.advance(10000);
+  assert.equal(opened(c, 'tld.my.customlauncher'), before, 'input stays on screen');
+});
+
+test('wake into LG Home: the chosen app replaces it', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  const c = controller();
+  c.advance(60000);
+  c.foreground('tld.my.customlauncher');
+  const before = opened(c, 'tld.my.customlauncher');
+  c.power({ state: 'Active Standby' });
+  c.advance(2000);
+  c.power({ state: 'Active' });
+  c.advance(500);
+  c.foreground('com.webos.app.home');
+  c.advance(5000);
+  assert.equal(opened(c, 'tld.my.customlauncher'), before + 1, 'chosen app opened once');
+});

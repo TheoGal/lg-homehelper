@@ -94,8 +94,9 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
 
 - If Developer Mode expires, the TV removes these apps; reinstall and repeat
   the setup.
-- At power-on you may briefly see LG Home before your app opens: the helper
-  starts with the TV and then switches to your app.
+- At power-on, Home Helper only replaces LG Home. If your TV is set to start
+  with its last input or app, that is what you get. If it starts with LG Home,
+  you may see it briefly before your app opens.
 - Back is never changed. When an app has used up its own Back steps and
   closes, you land in your chosen app instead of LG Home.
   Holding Back does whatever your TV normally does (accessibility zoom on

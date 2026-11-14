@@ -311,6 +311,7 @@ function launchHome(reason, done) {
   open(true);
 }
 var resumeGuardUntil = 0,
+  resumeSettleUntil = 0,
   resumeRetries = 0,
   lgHomeSince = null,
   lastLaunchSettledAt = 0;
@@ -1147,18 +1148,11 @@ var timer = setInterval(function () {
     !visitingLG &&
     homeControl.enabled()
   ) {
-    var resumeDue = resumePendingUntil;
+    // At power-on the TV decides what to show (LG Home, or the last input or
+    // app if it is set to). Only LG Home is replaced: the check below opens
+    // the chosen app once LG Home has stayed in front after the TV settled.
     resumePendingUntil = 0;
-    if (!shouldResumeLaunch(lastForeground)) {
-      log({ event: 'resume-already-foreground' });
-    } else if (monotonic() <= resumeDue) {
-      launching = true;
-      log({ event: 'resume-launch' });
-      launchHome('wake', function (ok) {
-        launching = false;
-        if (!ok) log({ event: 'resume-launch-failed' });
-      });
-    }
+    log({ event: 'resume-wait-lg-home', foreground: lastForeground });
   }
   // A successful Luna reply only acknowledges the request. LG Home can win
   // later, including while a launch is in flight, so check the current level.
@@ -1178,6 +1172,7 @@ var timer = setInterval(function () {
     lastForeground === 'com.webos.app.home' &&
     lgHomeSince !== null &&
     now - lgHomeSince >= 1500 &&
+    now >= resumeSettleUntil &&
     now - lastLaunchSettledAt >= 5000
   ) {
     resumeRetries++;
@@ -1212,6 +1207,18 @@ setTimeout(
       return;
     }
     if (!homeControl.enabled()) {
+      start();
+      return;
+    }
+    if (automatic) {
+      // Boot: leave the TV's own power-on choice (for example its last input)
+      // alone and only replace LG Home if the TV opens it.
+      var now = monotonic();
+      resumeGuardUntil = now + 45000;
+      resumeSettleUntil = now + 3000;
+      resumeRetries = 0;
+      lgHomeSince = lastForeground === 'com.webos.app.home' ? now : null;
+      log({ event: 'boot-wait-lg-home' });
       start();
       return;
     }
@@ -1404,6 +1411,7 @@ var screenWatch = require('./screen-watch')(
       var now = monotonic();
       resumePendingUntil = now + 10000;
       resumeGuardUntil = now + 30000;
+      resumeSettleUntil = now + 3000;
       resumeRetries = 0;
       lgHomeSince = lastForeground === 'com.webos.app.home' ? now : null;
     }
