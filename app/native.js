@@ -395,6 +395,7 @@ function publishStatus(running) {
 }
 // The app list needs the pairing. Refreshed every 10 minutes, and when the
 // settings app comes to the front (at most every 15 s).
+var iconCache = require('./icon-cache');
 function publishApps(soon) {
   var now = Date.now(),
     age = now - lastAppsAt;
@@ -406,18 +407,19 @@ function publishApps(soon) {
       appsPending = false;
       var apps = Array.isArray(catalog) ? catalog : catalog && catalog.apps;
       if (!Array.isArray(apps)) return;
-      shared.write('app-list.json', {
-        time: Date.now(),
-        apps: apps
-          .filter(function (a) {
-            return a && typeof a.id === 'string';
-          })
-          .map(function (a) {
+      apps = apps.filter(function (a) {
+        return a && typeof a.id === 'string';
+      });
+      // Icons are kept as files next to the list; the list names them.
+      iconCache(shared.DIR, apps, function (icons) {
+        shared.write('app-list.json', {
+          time: Date.now(),
+          apps: apps.map(function (a) {
             var entry = { id: a.id, title: typeof a.title === 'string' && a.title ? a.title : a.id };
-            // Checked by app-inventory: the TV's own icon server or its icon files.
-            if (typeof a.iconUrl === 'string') entry.icon = a.iconUrl;
+            if (icons[a.id]) entry.icon = icons[a.id];
             return entry;
           })
+        });
       });
     },
     function () {

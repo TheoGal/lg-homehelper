@@ -129,13 +129,30 @@
     });
   }
 
-  // Icons come from the TV's own icon server (http) or, on some firmware, as
-  // file paths, shown as file:// pictures the way Hearth does.
-  function iconAddress(path) {
-    if (typeof path !== 'string') return '';
-    if (/^http:\/\//.test(path)) return path;
-    if (path.charAt(0) === '/') return 'file://' + encodeURI(path);
-    return '';
+  // Icons are kept by the helper (the page cannot load them from the TV's icon
+  // server) and handed over one at a time by this page's service.
+  var iconData = {}, iconWaiting = {}, iconQueue = [], iconBusy = false;
+  function loadIcon(name, img) {
+    if (iconData[name]) { img.src = iconData[name]; return; }
+    if (iconWaiting[name]) { iconWaiting[name].push(img); return; }
+    iconWaiting[name] = [img];
+    iconQueue.push(name);
+    nextIcon();
+  }
+  function nextIcon() {
+    if (iconBusy || !iconQueue.length) return;
+    var name = iconQueue.shift();
+    iconBusy = true;
+    call('luna://' + HELPER + '.settings.service/icon', { name: name }, function (r) {
+      iconBusy = false;
+      var imgs = iconWaiting[name] || [];
+      delete iconWaiting[name];
+      if (r && r.returnValue && typeof r.data === 'string' && r.data.indexOf('data:image/') === 0) {
+        iconData[name] = r.data;
+        for (var i = 0; i < imgs.length; i++) imgs[i].src = r.data;
+      }
+      nextIcon();
+    });
   }
   function addApps(list) {
     var seen = {};
@@ -143,7 +160,7 @@
     (list || []).forEach(function (a) {
       if (!a || typeof a.id !== 'string' || seen[a.id] || HIDDEN.indexOf(a.id) >= 0) return;
       seen[a.id] = true;
-      apps.push({ id: a.id, title: a.title || a.id, icon: iconAddress(a.icon) });
+      apps.push({ id: a.id, title: a.title || a.id, icon: typeof a.icon === 'string' ? a.icon : '' });
     });
     apps.sort(function (x, y) { return x.title.toLowerCase() < y.title.toLowerCase() ? -1 : 1; });
     // Always first: going back to LG's own Home.
@@ -189,9 +206,9 @@
       pic.className = 'pic';
       if (a.icon) {
         var img = document.createElement('img');
-        img.src = a.icon;
-        img.onerror = function () { pic.removeChild(img); };
+        img.onerror = function () { if (img.parentNode) pic.removeChild(img); };
         pic.appendChild(img);
+        loadIcon(a.icon, img);
       }
       row.appendChild(pic);
       var name = document.createElement('span');
