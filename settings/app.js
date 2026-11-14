@@ -129,13 +129,18 @@
     });
   }
 
+  // The TV's own icon files, shown the way Hearth does: as file:// pictures.
+  function iconAddress(path) {
+    if (typeof path !== 'string' || path.charAt(0) !== '/') return '';
+    return 'file://' + encodeURI(path);
+  }
   function addApps(list) {
     var seen = {};
     apps = [];
     (list || []).forEach(function (a) {
       if (!a || typeof a.id !== 'string' || seen[a.id] || HIDDEN.indexOf(a.id) >= 0) return;
       seen[a.id] = true;
-      apps.push({ id: a.id, title: a.title || a.id });
+      apps.push({ id: a.id, title: a.title || a.id, icon: iconAddress(a.icon) });
     });
     apps.sort(function (x, y) { return x.title.toLowerCase() < y.title.toLowerCase() ? -1 : 1; });
     // Always first: going back to LG's own Home.
@@ -177,6 +182,15 @@
       var row = document.createElement('div');
       row.className = 'app' + (a.id === current ? ' selected' : '') +
         (zone === 'list' && i === listIndex ? ' focus' : '');
+      var pic = document.createElement('span');
+      pic.className = 'pic';
+      if (a.icon) {
+        var img = document.createElement('img');
+        img.src = a.icon;
+        img.onerror = function () { pic.removeChild(img); };
+        pic.appendChild(img);
+      }
+      row.appendChild(pic);
       var name = document.createElement('span');
       name.className = 'name';
       name.textContent = a.title;

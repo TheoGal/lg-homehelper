@@ -327,7 +327,11 @@ test('publishes status and app list for the settings app', async () => {
   for (const f of fs.readdirSync(sharedDir)) fs.unlinkSync(path.join(sharedDir, f));
   targetNow.id = 'tld.my.customlauncher';
   const c = controller({
-    inputQuery: () => Promise.resolve([{ id: 'tld.my.customlauncher', title: 'Hearth' }, { id: 'netflix', title: 'Netflix' }])
+    inputQuery: () => Promise.resolve([
+      { id: 'tld.my.customlauncher', title: 'Hearth', icon: '/media/developer/apps/usr/palm/applications/tld.my.customlauncher/icon.png' },
+      { id: 'netflix', title: 'Netflix', icon: 'http://evil/x.png', largeIcon: '/media/cryptofs/apps/usr/palm/applications/netflix/large.png' },
+      { id: 'odd', title: 'Odd', icon: '/a/../../etc/shadow' }
+    ])
   });
   let h = sharedFile('helper.json');
   assert.equal(h.running, true, 'running published at start');
@@ -340,8 +344,12 @@ test('publishes status and app list for the settings app', async () => {
   assert.equal(sharedFile('helper.json').paired, true, 'pairing published');
   assert.deepEqual(
     sharedFile('app-list.json').apps,
-    [{ id: 'tld.my.customlauncher', title: 'Hearth' }, { id: 'netflix', title: 'Netflix' }],
-    'app list published'
+    [
+      { id: 'tld.my.customlauncher', title: 'Hearth', icon: '/media/developer/apps/usr/palm/applications/tld.my.customlauncher/icon.png' },
+      { id: 'netflix', title: 'Netflix', icon: '/media/cryptofs/apps/usr/palm/applications/netflix/large.png' },
+      { id: 'odd', title: 'Odd' }
+    ],
+    'app list published, with the TV icon files only'
   );
   const before = sharedFile('helper.json').time;
   c.advance(31000);

@@ -413,7 +413,13 @@ function publishApps(soon) {
             return a && typeof a.id === 'string';
           })
           .map(function (a) {
-            return { id: a.id, title: typeof a.title === 'string' && a.title ? a.title : a.id };
+            var entry = { id: a.id, title: typeof a.title === 'string' && a.title ? a.title : a.id },
+              icon = [a.largeIcon, a.icon, a.mediumIcon].filter(function (i) {
+                // Only the TV's own picture files: the settings page shows them as file:// images.
+                return typeof i === 'string' && /^\/[^\0]{1,500}$/.test(i) && i.indexOf('..') < 0;
+              })[0];
+            if (icon) entry.icon = icon;
+            return entry;
           })
       });
     },
