@@ -138,8 +138,7 @@ if (!automatic) {
 var lastForeground = null,
   lastForegroundAt = null,
   monitor = 'starting',
-  monitorReason = null,
-  shouldResumeLaunch = require('./resume-policy');
+  monitorReason = null;
 var child,
   ready = false,
   stopping = false,
@@ -164,18 +163,7 @@ var homeCloseState = 'idle',
   terminalUI = false,
   homeLaunchPending = false,
   homeLaunchUnknown = false;
-var presentation = require('./presentation-context')({
-  now: monotonic,
-  content: function (id) {
-    return (
-      id !== target() &&
-      id !== 'com.webos.app.home' &&
-      id !== 'com.webos.app.cpcover' &&
-      ((watchedApps || []).indexOf(id) !== -1 ||
-        /^com\.webos\.app\.hdmi[1-4]$/.test(id))
-    );
-  }
-});
+var presentation = require('./presentation-context')();
 function closeOwnedHome() {
   if (homeCloseState !== 'idle' || !service) return;
   homeCloseState = 'pending';
@@ -221,21 +209,6 @@ function afterHomeClose(done) {
 function invalidatePresentation(close) {
   if (presentation) presentation.invalidate();
   if (close) closeOwnedHome();
-}
-function refreshPresentation(generation, done) {
-  function finish(id) {
-    if (presentation.generation() !== generation) {
-      done(false);
-      return;
-    }
-    presentation.observe(generation, id);
-    done(true);
-  }
-  if (!screenWatch || typeof screenWatch.foreground !== 'function') {
-    finish(null);
-    return;
-  }
-  screenWatch.foreground(finish);
 }
 function launchHome(reason, done) {
   if (target() === null) {
@@ -536,14 +509,11 @@ if (setupGeneration !== undefined) {
   homeControl.set(true);
   if (!generationCurrent()) process.exit(0);
 }
-// Request channel in the Helper's own state directory.
-var homeChannels = [{ directory: data, last: '' }];
-var inputStatusPending = null,
-  catalogPending = null;
+var catalogPending = null;
 function readCatalog() {
   if (!catalogPending) {
     catalogPending = Promise.resolve().then(function () {
-      return require('./app-inventory')({ timeout: 3000, details: true });
+      return require('./app-inventory')({ timeout: 3000 });
     });
     catalogPending = catalogPending.then(
       function (apps) {
@@ -557,190 +527,6 @@ function readCatalog() {
     );
   }
   return catalogPending;
-}
-function readInputs() {
-  if (!inputStatusPending) {
-    inputStatusPending = Promise.resolve().then(function () {
-      return require('./app-inventory')({ inputs: true, timeout: 3000 });
-    });
-    inputStatusPending = inputStatusPending.then(
-      function (devices) {
-        inputStatusPending = null;
-        return devices;
-      },
-      function () {
-        inputStatusPending = null;
-        throw Error('Input status unavailable');
-      }
-    );
-  }
-  return inputStatusPending;
-}
-function readHomeRequest(channel) {
-  var directory = channel.directory,
-    prefix = channel.catalogOnly
-      ? 'catalog'
-      : channel.inputOnly
-        ? 'input'
-        : 'home';
-  var request;
-  try {
-    request = JSON.parse(
-      directory === data
-        ? fs.readFileSync(directory + '/' + prefix + '-request.json', 'utf8')
-        : require('./state-permissions').readChannelRecord(
-            directory,
-            prefix + '-request'
-          )
-    );
-  } catch (e) {
-    return;
-  }
-  if (
-    !request ||
-    typeof request.id !== 'string' ||
-    !/^[a-f0-9]{32}$/.test(request.id) ||
-    request.id === channel.last
-  )
-    return;
-  channel.last = request.id;
-  if (
-    typeof request.expires !== 'number' ||
-    request.expires < Date.now() ||
-    request.expires > Date.now() + 6000
-  )
-    return;
-  if (
-    (channel.inputOnly && request.method !== 'inputStatus') ||
-    (channel.catalogOnly && request.method !== 'listApps')
-  )
-    return;
-  if (
-    channel.catalogOnly &&
-    (stopping ||
-      stopRequested ||
-      fs.existsSync(data + '/blocked') ||
-      (child && child.reason !== undefined))
-  )
-    return;
-  function respond(result) {
-    result.id = request.id;
-    try {
-      require('./state-permissions').atomicRecord(
-        directory,
-        prefix + '-response',
-        JSON.stringify(result),
-        { role: directory === data ? 'app' : 'channel' }
-      );
-    } catch (e) {
-      log({ event: 'home-response-error', error: String(e) });
-    }
-  }
-  try {
-    if (
-      !channel.inputOnly &&
-      directory !== data &&
-      request.method === 'presentationContext'
-    ) {
-      var generation = presentation.generation();
-      refreshPresentation(generation, function (current) {
-        if (
-          !current ||
-          stopping ||
-          stopRequested ||
-          (child && child.reason !== undefined) ||
-          request.expires <= Date.now()
-        )
-          return;
-        respond(presentation.context());
-      });
-    } else if (
-      !channel.inputOnly &&
-      directory !== data &&
-      request.method === 'presentationDismissed'
-    ) {
-      var dismissed = presentation.dismiss(request.generation);
-      if (dismissed) {
-        cancelResume();
-        screenPolicy.reset();
-        suppressReturnUntil = monotonic() + 7000;
-      }
-      respond({
-        returnValue: dismissed,
-        dismissed: dismissed,
-        generation: request.generation
-      });
-    } else if (request.method === 'homeStatus')
-      respond({ returnValue: true, enabled: homeControl.enabled() });
-    else if (request.method === 'setHomeControl') {
-      homeControl.set(request.enabled);
-      respond({ returnValue: true, enabled: homeControl.enabled() });
-    } else if (request.method === 'openLGHome')
-      visitLG(function (ok) {
-        respond({ returnValue: ok });
-      });
-    else if (channel.catalogOnly && request.method === 'listApps')
-      readCatalog().then(
-        function (apps) {
-          if (
-            !stopping &&
-            !stopRequested &&
-            !fs.existsSync(data + '/blocked') &&
-            !(child && child.reason !== undefined) &&
-            request.expires > Date.now()
-          )
-            respond(
-              Array.isArray(apps)
-                ? { returnValue: true, apps: apps }
-                : {
-                    returnValue: true,
-                    apps: apps.apps,
-                    installedIds: apps.installedIds
-                  }
-            );
-        },
-        function () {
-          if (
-            !stopping &&
-            !stopRequested &&
-            !fs.existsSync(data + '/blocked') &&
-            !(child && child.reason !== undefined) &&
-            request.expires > Date.now()
-          )
-            respond({
-              returnValue: false,
-              errorText: 'App inventory unavailable'
-            });
-        }
-      );
-    else if (channel.inputOnly && request.method === 'inputStatus')
-      readInputs().then(
-        function (devices) {
-          if (
-            !stopping &&
-            !stopRequested &&
-            !fs.existsSync(data + '/blocked') &&
-            request.expires > Date.now()
-          )
-            respond({ returnValue: true, devices: devices });
-        },
-        function () {
-          if (
-            !stopping &&
-            !stopRequested &&
-            !fs.existsSync(data + '/blocked') &&
-            request.expires > Date.now()
-          )
-            respond({
-              returnValue: false,
-              errorText: 'Input status unavailable'
-            });
-        }
-      );
-    else respond({ returnValue: false, errorText: 'Invalid Home request' });
-  } catch (e) {
-    respond({ returnValue: false, errorText: String(e) });
-  }
 }
 // A watchdog latch also prevents a new controller from restarting an orphaned
 // relay. Only this live controller's successful READY may clear it, never blocked.
@@ -1118,27 +904,12 @@ var timer = setInterval(function () {
   homeControl.sync();
   publishStatus(true);
   publishApps(false);
-  homeChannels.forEach(readHomeRequest);
   try {
     var raw = fs.readFileSync(data + '/control.json', 'utf8');
     if (raw !== lastCommand) {
       lastCommand = raw;
       var command = JSON.parse(raw);
       diagnosticCommand(command.cmd, command.nonce);
-      if (command.cmd === 'startup-status')
-        service.call(
-          'luna://io.github.theogal.homehelper.service/status',
-          {},
-          function (r) {
-            log({ event: 'startup-status', result: r.payload });
-          }
-        );
-      if (command.cmd === 'stall-worker' && child) child.stdin.write('S');
-      if (command.cmd === 'stall-controller') {
-        cp.spawn(root + '/resume', [String(process.pid)], { stdio: 'ignore' });
-        log({ event: 'simulate-controller-stall' });
-        process.kill(process.pid, 'SIGSTOP');
-      }
     }
   } catch (e) {}
   if (

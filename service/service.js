@@ -35,23 +35,11 @@ function call(uri, args, cb) {
   });
 }
 function complete(message, result) {
-  fs.writeFileSync(
-    '/tmp/homehelper-boot-callback.json',
-    JSON.stringify({
-      time: Date.now(),
-      result: result,
-      activity: message.payload.$activity
-    })
-  );
   if (message.payload.$activity && message.activity)
     service.activityManager.complete(
       message.activity,
       { restart: true },
-      function (a) {
-        fs.writeFileSync(
-          '/tmp/homehelper-boot-complete.json',
-          JSON.stringify({ time: Date.now(), activity: a })
-        );
+      function () {
         message.respond({ returnValue: true, result: result });
       }
     );
@@ -63,9 +51,7 @@ service.register('status', function (m) {
       returnValue: true,
       state: read(),
       boot: boot(),
-      blocked: blocked(),
-      callback: readDebug('/tmp/homehelper-boot-callback.json'),
-      complete: readDebug('/tmp/homehelper-boot-complete.json')
+      blocked: blocked()
     });
   } catch (e) {
     m.respond({ returnValue: false, errorText: String(e) });
@@ -144,14 +130,6 @@ service.register('tick', function (m) {
     complete(m, { returnValue: false, errorText: String(e) });
   }
 });
-
-function readDebug(p) {
-  try {
-    return JSON.parse(fs.readFileSync(p, 'utf8'));
-  } catch (e) {
-    return null;
-  }
-}
 
 // A shortcut only: the helper itself refuses an automatic start while its
 // stop latch is set. This service's sandbox usually cannot see the app's

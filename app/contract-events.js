@@ -318,19 +318,6 @@ var producers = {
   ],
   'transport': [['read'], ['validate'], ['envelope'], ['contract-envelope']]
 };
-function exportEvents(values) {
-  var clean = safeEvents(values),
-    result = [],
-    keys = ['operation', 'phase', 'field', 'expected'];
-  clean.forEach(function (event) {
-    var vocabulary = producers[event.component];
-    if (!vocabulary) return;
-    for (var i = 0; i < keys.length; i++)
-      if (vocabulary[i].indexOf(event[keys[i]]) < 0) return;
-    result.push(event);
-  });
-  return result;
-}
 function runtimeOutcome(code, reported, signal, cleanup) {
   var actual = {
       os_code: code,
@@ -356,7 +343,6 @@ function runtimeOutcome(code, reported, signal, cleanup) {
 }
 module.exports = {
   runtimeOutcome: runtimeOutcome,
-  exportEvents: exportEvents,
   describe: describe,
   normalize: normalize,
   safeEvents: safeEvents,

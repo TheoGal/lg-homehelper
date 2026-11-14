@@ -55,6 +55,7 @@
         $('currentMeta').textContent = 'Home Helper service did not answer' +
           (r && r.errorText ? ' (' + r.errorText + ')' : r ? '' : ' (no reply)') + '. Is Home Helper installed?';
         $('helperState').textContent = '';
+        $('reset').style.display = 'none';
         running = false;
         $('power').textContent = 'Start Home Helper';
         return;
@@ -133,19 +134,18 @@
     apps = [];
     (list || []).forEach(function (a) {
       if (!a || typeof a.id !== 'string' || seen[a.id] || HIDDEN.indexOf(a.id) >= 0) return;
-      if (a.visible === false && a.id !== current) return;
       seen[a.id] = true;
-      apps.push({ id: a.id, title: a.title || a.id, icon: a.icon || a.mediumIcon || '' });
+      apps.push({ id: a.id, title: a.title || a.id });
     });
     apps.sort(function (x, y) { return x.title.toLowerCase() < y.title.toLowerCase() ? -1 : 1; });
     // Always first: going back to LG's own Home.
-    apps.unshift({ id: LG_HOME, title: 'LG Home', icon: '', note: 'no redirect' });
+    apps.unshift({ id: LG_HOME, title: 'LG Home', note: 'no redirect' });
   }
 
-  // Sideloaded web apps may not list apps themselves on newer webOS, so ask the
-  // Helper service: the running helper publishes the list over the TV's pairing
-  // connection. Right after Start that takes a few seconds, so keep asking for
-  // up to 30 s. The platform's own lists are only a last resort.
+  // Sideloaded web apps cannot list the TV's apps themselves, so the running
+  // helper publishes the list over the TV's pairing connection and this page's
+  // service hands it over. Right after Start that takes a few seconds, so keep
+  // asking for up to 30 s.
   var appsLoaded = false, listTries = 0, lastListError = '';
   function loadApps() {
     call('luna://' + HELPER + '.settings.service/listApps', {}, function (r) {
@@ -157,16 +157,10 @@
         return;
       }
       listTries = 0;
-      call('luna://com.webos.applicationManager/listLaunchPoints', {}, function (r2) {
-        if (r2 && r2.returnValue && r2.launchPoints && r2.launchPoints.length) return done(r2.launchPoints);
-        call('luna://com.webos.applicationManager/listApps', {}, function (r3) {
-          if (r3 && r3.returnValue && r3.apps && r3.apps.length) return done(r3.apps);
-          appsLoaded = false;
-          done([]);
-          note('Could not read your apps right now' + (lastListError ? ' (' + lastListError + ')' : '') +
-            '. Close this screen and open it again to retry.');
-        });
-      });
+      appsLoaded = false;
+      done([]);
+      note('Could not read your apps right now' + (lastListError ? ' (' + lastListError + ')' : '') +
+        '. Close this screen and open it again to retry.');
     });
     function done(list) {
       if (list.length) { appsLoaded = true; note(''); }
@@ -183,12 +177,6 @@
       var row = document.createElement('div');
       row.className = 'app' + (a.id === current ? ' selected' : '') +
         (zone === 'list' && i === listIndex ? ' focus' : '');
-      if (a.icon) {
-        var img = document.createElement('img');
-        img.src = a.icon;
-        img.onerror = function () { img.style.visibility = 'hidden'; };
-        row.appendChild(img);
-      }
       var name = document.createElement('span');
       name.className = 'name';
       name.textContent = a.title;

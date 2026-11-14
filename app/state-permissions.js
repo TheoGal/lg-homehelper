@@ -809,93 +809,6 @@ function session(directory, options, action) {
     if (parent !== undefined) fs.closeSync(parent);
   }
 }
-function configuration(directory, options, repair) {
-  options = options || {};
-  return session(
-    directory,
-    {
-      role: 'installer',
-      operation: repair ? 'prepare' : 'inspect',
-      legacy: repair,
-      normalize: repair,
-      output: repair ? 'stop-generation' : undefined
-    },
-    function (s) {
-      if (repair && s.stat.mode & 2)
-        fail('safe-mode', s.stat, undefined, 'directory');
-      // Validate both configuration leaves before the first key mutation.
-      var key =
-          (repair && s.expanded('ssap-key.json', 65536, false)) ||
-          s.read('ssap-key.json', 65536),
-        apps =
-          (repair && s.expanded('apps.json', 16 * 1024 * 1024, true)) ||
-          s.read('apps.json', 16 * 1024 * 1024),
-        replacing = false;
-      if (apps && !s.owned(apps.stat))
-        fail(
-          'apps',
-          'trusted-owner',
-          actual(apps.stat),
-          repair ? 'prepare' : 'inspect',
-          'validate'
-        );
-      // Root-origin repair keeps its original capsule proof even after the
-      // adapter permanently becomes the packaged configuration owner.
-      if (
-        key &&
-        options.requireHash &&
-        (!repair ||
-          !/^[a-f0-9]{64}$/.test(options.expectedHash || '') ||
-          crypto.createHash('sha256').update(key.bytes).digest('hex') !==
-            options.expectedHash)
-      )
-        fail('authenticated-key', key.stat, 65536, 'key');
-      if (key) {
-        var mode = key.stat.mode & 4095;
-        // Trusted read ownership does not grant chmod authority over a
-        // noncaller key; privacy repair must authenticate its original bytes.
-        if (!s.owned(key.stat) || (key.stat.uid !== s.uid && mode & 7)) {
-          if (
-            !repair ||
-            !/^[a-f0-9]{64}$/.test(options.expectedHash || '') ||
-            key.stat.gid !== s.stat.gid ||
-            !s.canAccessGroup(key.stat.gid) ||
-            [416, 509, 511].indexOf(mode) < 0 ||
-            crypto.createHash('sha256').update(key.bytes).digest('hex') !==
-              options.expectedHash
-          )
-            fail(
-              'key',
-              'authenticated-key',
-              actual(key.stat),
-              repair ? 'prepare' : 'inspect',
-              'validate'
-            );
-          replacing = true;
-        } else if (mode & 7) {
-          if (!repair || key.stat.uid !== s.uid || [509, 511].indexOf(mode) < 0)
-            fail(
-              'key',
-              'private-key',
-              actual(key.stat),
-              repair ? 'prepare' : 'inspect',
-              'validate'
-            );
-        }
-      }
-      // A fresh private inode disconnects pre-repair writable descriptors.
-      if (key && repair && (mode === 511 || (options.requireHash && mode & 7)))
-        replacing = true;
-      if (repair && apps && (apps.stat.mode & 4095) === 511)
-        s.restrict('apps.json', apps, 420, 16 * 1024 * 1024);
-      if (key) {
-        if (replacing) s.replace('ssap-key.json', key, 416, 65536);
-        else if (mode & 7) s.restrict('ssap-key.json', key, 416, 65536);
-      }
-      return true;
-    }
-  );
-}
 function prepare(directory, log, initializeControl) {
   var settings = {
     legacy: true,
@@ -1009,107 +922,21 @@ var records = {
   pid: ['controller.pid', 420, 'app'],
   logger: ['controller.log', 420, 'app']
 };
-['home', 'input', 'catalog'].forEach(function (prefix) {
-  records[prefix + '-request'] = [prefix + '-request.json', 432, 'channel'];
-  records[prefix + '-response'] = [prefix + '-response.json', 432, 'channel'];
-});
-prepare.inspectConfiguration = function (directory, options) {
-  return configuration(directory, options, false);
-};
-prepare.prepareConfiguration = function (directory, options) {
-  return configuration(directory, options, true);
-};
-// The installed channel can be owned by a different UID. Under the known
-// 0775 drift, use its group-writable namespace only to find a private child.
-function channelSession(directory, settings, create, action) {
-  var outerSettings = {
-    role: 'channel-parent',
-    operation: settings.operation,
-    output: settings.output
-  };
-  return session(directory, outerSettings, function (outer) {
-    if ((outer.stat.mode & 4095) === 1528) return action(outer);
-    var name = '.private',
-      fd;
-    if (create) {
-      outer.check();
-      try {
-        fs.mkdirSync(name, 448); // 0700 until the owner establishes the shared group.
-      } catch (error) {
-        if (error.code !== 'EEXIST') throw error;
-      }
-      var child = fs.lstatSync(name);
-      if (
-        child.isDirectory() &&
-        child.uid === outer.uid &&
-        (child.mode & 4095) === 448
-      ) {
-        try {
-          fd = fs.openSync(name, c.O_RDONLY | c.O_NOFOLLOW | c.O_DIRECTORY);
-          if (
-            !same(child, fs.fstatSync(fd)) ||
-            !same(child, fs.lstatSync(name))
-          )
-            fail('directory', 'stable-inode');
-          outer.check();
-          if (child.gid !== outer.stat.gid)
-            fs.fchownSync(fd, child.uid, outer.stat.gid);
-          fs.fchmodSync(fd, 1528);
-        } finally {
-          if (fd !== undefined) fs.closeSync(fd);
-        }
-      }
-    }
-    outer.check();
-    settings.channelParent = { path: directory, stat: outer.stat };
-    return session(directory + '/' + name, settings, action);
-  });
-}
-prepare.readChannelRecord = function (directory, kind) {
-  var record =
-    Object.prototype.hasOwnProperty.call(records, kind) && records[kind];
-  if (!record || record[2] !== 'channel') fail();
-  return channelSession(
-    directory,
-    { role: 'channel', operation: 'record' },
-    false,
-    function (s) {
-      var value = s.read(record[0], 2 * 1024 * 1024);
-      if (!value) {
-        var error = Error('channel record unavailable');
-        error.code = 'ENOENT';
-        throw error;
-      }
-      return value.bytes.toString('utf8');
-    }
-  );
-};
-prepare.atomicRecord = function (directory, kind, bytes, options) {
+prepare.atomicRecord = function (directory, kind, bytes) {
   if (
     !Object.prototype.hasOwnProperty.call(records, kind) ||
     (typeof bytes !== 'string' && !Buffer.isBuffer(bytes))
   )
     fail();
-  var record = records[kind],
-    role = record[2];
-  if (options && options.role !== undefined) {
-    if (role !== 'channel' || ['app', 'channel'].indexOf(options.role) < 0)
-      fail();
-    role = options.role;
-  }
-  var settings = {
-    role: role,
-    legacy: role !== 'channel',
-    operation: 'record',
-    output: record[0]
-  };
-  function write(s) {
-    s.write(record[0], buffer(bytes), record[1], Infinity, false);
-    return true;
-  }
-  return role === 'channel'
-    ? channelSession(directory, settings, /-request$/.test(kind), write)
-    : session(directory, settings, write);
+  var record = records[kind];
+  return session(
+    directory,
+    { role: record[2], legacy: true, operation: 'record', output: record[0] },
+    function (s) {
+      s.write(record[0], buffer(bytes), record[1], Infinity, false);
+      return true;
+    }
+  );
 };
 function retainStop(s) {
   s.leaf('blocked', Infinity);
@@ -1409,67 +1236,5 @@ prepare.appendLog = function (directory, line) {
       return true;
     }
   );
-};
-prepare.readLogEvents = function (directory) {
-  var result = { schema: 1, telemetry: 'legacy', events: [] };
-  try {
-    return session(
-      directory,
-      { legacy: true, operation: 'collect' },
-      function (s) {
-        var recorder = events.create(),
-          files = [
-            s.read('controller.log.previous', 131072),
-            s.read('controller.log', 131072)
-          ];
-        files.forEach(function (file) {
-          if (!file) return;
-          file.bytes
-            .toString('utf8')
-            .split('\n')
-            .forEach(function (line) {
-              if (line.length > 16480) return;
-              try {
-                var item = JSON.parse(line),
-                  values = [];
-                if (item.event === 'contract-event') values = [item.contract];
-                if (
-                  item.event === 'contract-snapshot' &&
-                  item.contract &&
-                  item.contract.schema === 1
-                )
-                  values = item.contract.events;
-                else if (item.event !== 'contract-event') return;
-                result.telemetry = 'read';
-                events.exportEvents(values).forEach(function (event) {
-                  var old = recorder.snapshot().events,
-                    count = 0;
-                  for (var i = 0; i < old.length; i++) {
-                    var a = events.normalize(old[i]),
-                      b = events.normalize(event);
-                    count = a.count;
-                    delete a.count;
-                    delete b.count;
-                    delete a.first;
-                    delete b.first;
-                    delete a.last;
-                    delete b.last;
-                    if (JSON.stringify(a) === JSON.stringify(b)) {
-                      event.count = Math.max(0, event.count - count);
-                      break;
-                    }
-                  }
-                  if (event.count > 0) recorder.record(event);
-                });
-              } catch (ignore) {}
-            });
-        });
-        result.events = events.exportEvents(recorder.snapshot());
-        return result;
-      }
-    );
-  } catch (ignore) {
-    return { schema: 1, telemetry: 'unavailable', events: [] };
-  }
 };
 module.exports = prepare;

@@ -16,6 +16,9 @@ See [Credits](#credits).
 
 Source: https://github.com/TheoGal/lg-homehelper
 
+Tested on a C3 with 43.91.26 firmware and [Hearth](https://github.com/rudra-avatar/Hearth)
+as a launcher.
+
 ## Install
 
 You need a TV with **Developer Mode** on, and **BOTH** packages from the
@@ -77,18 +80,46 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
 `{"nativeHomeTarget":"com.webos.app.home"}` goes back to LG Home;
 `{"nativeHomeTarget":""}` clears the TV choice (packaged default, else LG Home).
 
-## Stop or remove
+## Stop
 
 - Choose **Stop Home Helper** in the settings app, or press **Home three
-  times within two seconds** (the emergency stop). Either way it stays off
-  until you start it again from the settings app.
-- To remove it cleanly, choose **Stop Home Helper** first, then uninstall both
-  apps from LG's app menu like any other app. Stopping also removes the
-  helper's start-at-boot task, so nothing is left behind.
-- If the TV is hard to use, remove it from a computer, then unplug the TV for
-  30 seconds:
-  `ares-install --device tv --remove io.github.theogal.homehelper`
-- Last resort: turn Developer Mode off and restart; the TV deletes all dev apps.
+  times within two seconds** (the emergency stop). Either way the Home button
+  goes back to LG Home, and the helper stays off until you start it again from
+  the settings app.
+- Stopping from the settings app also removes the helper's start-at-boot task.
+  The emergency stop only stops the helper; the boot task stays but does
+  nothing while the helper is stopped.
+
+## Uninstall
+
+1. **Stop the helper first.** Open **Home Helper Settings** and choose
+   **Stop Home Helper**. Wait until the status reads *Home Helper is stopped*.
+   This hands the Home button back to LG and removes the start-at-boot task.
+2. **Remove both apps from LG's app menu.** Press **Home** to open LG Home,
+   go to the app list, and switch it to edit mode (on webOS 23: highlight a
+   tile and hold **OK**, or use the pencil/*Edit* option at the end of the
+   list). Select **Home Helper**, choose *Delete*, then do the same for
+   **Home Helper Settings**. Remove any of the optional tiles the same way.
+   Apps installed from a downloaded `.ipk` file don't show an uninstall option
+   in webOS Dev Manager, so use LG's menu.
+3. **Check that nothing is left (optional).** In webOS Dev Manager's terminal:
+   `ls /media/developer/apps/usr/palm/applications/ /media/developer/apps/usr/palm/services/ | grep theogal`
+   It should print nothing. The pairing key and all settings lived in the
+   apps' own folders, so they are gone with them.
+
+If you uninstalled without stopping first, nothing breaks: the boot task stays
+behind but only points at the removed app, so it does nothing. To remove it,
+reinstall both packages, start the helper, choose **Stop Home Helper**,
+then uninstall again.
+
+**From a computer** (with the webOS CLI, `ares`):
+`ares-install --device tv --remove io.github.theogal.homehelper`
+`ares-install --device tv --remove io.github.theogal.homehelper.settings`
+
+**If the TV is hard to use:** press Home three times quickly (emergency stop),
+or remove the apps from a computer as above and then unplug the TV for 30
+seconds. Last resort: turn Developer Mode off and restart; the TV deletes all
+Developer Mode apps.
 
 ## Notes
 

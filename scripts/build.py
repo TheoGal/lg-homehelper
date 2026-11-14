@@ -180,7 +180,6 @@ def build_shortcut(work, folder, targets):
 def build_helper(work):
     app = read_tree('app', lambda n: n.endswith(('.js', '.json', '.png')) or n.startswith('vendor/'))
     service = read_tree('service')
-    app['app-inventory.js'] = service['app-inventory.js']
     # The service sandbox cannot import from the app directory.
     for name in ('state-permissions.js', 'contract-events.js'):
         service[name] = app[name]

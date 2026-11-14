@@ -26,7 +26,6 @@
   #rows { position: absolute; left: 0; right: 0; top: 0; transition: top .12s; }
   .app { display: flex; align-items: center; gap: 24px; height: 96px; margin-bottom: 6px; padding: 0 24px;
     border-radius: 16px; border: 3px solid transparent; font-size: 32px; }
-  .app img { width: 64px; height: 64px; object-fit: contain; }
   .app .id { font-size: 22px; color: #8c8178; margin-left: auto; }
   .app.selected .name::after { content: "  (current)"; color: #f0b46c; font-size: 24px; }
 </style>
@@ -43,7 +42,7 @@
     </div>
     <button class="btn nav" id="power">Start Home Helper</button>
     <button class="btn nav" id="lghome">Open LG Home</button>
-    <button class="btn nav" id="reset">Use packaged default</button>
+    <button class="btn nav" id="reset" style="display:none">Use packaged default</button>
     <div id="msg"></div>
     <div id="hint">Emergency stop: press Home three times quickly.</div>
   </div>
