@@ -393,13 +393,15 @@ function publishStatus(running) {
     packaged: target.packaged()
   });
 }
-// The app list needs the pairing. Refreshed every 10 minutes, and when the
-// settings app comes to the front (at most every 15 s).
+// The app list needs the pairing. It is only read while the settings app is in
+// front: once per visit, retried every 15 s if the TV did not answer.
 var iconCache = require('./icon-cache');
-function publishApps(soon) {
+var appsVisitDone = false;
+function publishApps() {
   var now = Date.now(),
     age = now - lastAppsAt;
-  if (appsPending || !hasPairingKey() || (lastAppsAt && age >= 0 && age < (soon ? 15000 : 600000))) return;
+  if (appsPending || appsVisitDone || !hasPairingKey()) return;
+  if (lastAppsAt && age >= 0 && age < 15000) return;
   appsPending = true;
   lastAppsAt = now;
   readCatalog().then(
@@ -411,6 +413,7 @@ function publishApps(soon) {
         return a && typeof a.id === 'string';
       });
       // Icons are kept as files next to the list; the list names them.
+      appsVisitDone = true;
       iconCache(shared.DIR, apps, function (icons) {
         shared.write('app-list.json', {
           time: Date.now(),
@@ -423,8 +426,7 @@ function publishApps(soon) {
       });
     },
     function () {
-      appsPending = false;
-      lastAppsAt = now - 600000 + 30000; // try again in 30 s
+      appsPending = false; // lastAppsAt: tried again in 15 s while still in front
     }
   );
 }
@@ -908,7 +910,7 @@ var timer = setInterval(function () {
   refreshWatchCatalog();
   homeControl.sync();
   publishStatus(true);
-  publishApps(false);
+  if (lastForeground === 'io.github.theogal.homehelper.settings') publishApps();
   try {
     var raw = fs.readFileSync(data + '/control.json', 'utf8');
     if (raw !== lastCommand) {
@@ -1108,7 +1110,10 @@ var screenWatch = require('./screen-watch')(
     lastForegroundAt = monotonic();
     log({ event: 'foreground', id: id });
     diagnostic('foreground');
-    if (id === 'io.github.theogal.homehelper.settings') publishApps(true);
+    // Leaving the settings app ends a visit: the next visit reads the list again
+    // (at most every 15 s).
+    if (id !== 'io.github.theogal.homehelper.settings') appsVisitDone = false;
+    else publishApps();
     var exited = screenPolicy.next(id, monotonic());
     if (
       exited &&

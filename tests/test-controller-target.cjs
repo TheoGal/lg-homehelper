@@ -333,12 +333,13 @@ test('pairing rejected while running: stops like Stop does', () => {
 test('publishes status and app list for the settings app', async () => {
   for (const f of fs.readdirSync(sharedDir)) fs.unlinkSync(path.join(sharedDir, f));
   targetNow.id = 'tld.my.customlauncher';
+  let reads = 0;
   const c = controller({
-    inputQuery: () => Promise.resolve([
+    inputQuery: () => (reads++, Promise.resolve([
       { id: 'tld.my.customlauncher', title: 'Hearth', iconUrl: 'http://192.168.1.5:3000/resources/ab/icon.png' },
       { id: 'netflix', title: 'Netflix', icon: '/ignored/raw/field.png' },
       { id: 'odd', title: 'Odd', iconUrl: 42 }
-    ])
+    ]))
   });
   let h = sharedFile('helper.json');
   assert.equal(h.running, true, 'running published at start');
@@ -346,9 +347,15 @@ test('publishes status and app list for the settings app', async () => {
   assert.equal(h.target.id, 'tld.my.customlauncher');
   assert.equal(sharedFile('app-list.json'), null, 'no app list without a pairing');
   c.files.set(dir + 'ssap-key.json', '{"key":"k"}');      // paired
-  c.advance(500);
+  c.foreground('netflix');
+  c.advance(60000);
   await new Promise((r) => setImmediate(r));
   assert.equal(sharedFile('helper.json').paired, true, 'pairing published');
+  assert.equal(reads, 0, 'app list not read while the settings app is closed');
+  c.foreground('io.github.theogal.homehelper.settings');
+  c.advance(500);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(reads, 1, 'read when the settings app opens');
   assert.deepEqual(
     sharedFile('app-list.json').apps,
     [
@@ -358,6 +365,14 @@ test('publishes status and app list for the settings app', async () => {
     ],
     'app list published, naming the kept icon files'
   );
+  c.advance(60000);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(reads, 1, 'read once per visit');
+  c.foreground('netflix');
+  c.foreground('io.github.theogal.homehelper.settings');
+  c.advance(500);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(reads, 2, 'read again on the next visit');
   const before = sharedFile('helper.json').time;
   c.advance(31000);
   assert.ok(sharedFile('helper.json').time > before, 'refreshed at least every 30 s');
