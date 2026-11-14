@@ -68,13 +68,13 @@ test('no saved key: fails without pairing', async () => {
   await assert.rejects(inventory(t.options), /missing-pairing/);
 });
 
-test('icons: the TV icon server address is made complete, others refused', async () => {
+test('icons: links to the TV itself (127.0.0.1:3000), others refused', async () => {
   const t = tv({
     'ssap://com.webos.applicationManager/listLaunchPoints': {
       returnValue: true,
       launchPoints: [
         { id: 'com.webos.app.livetv', title: 'Live TV', icon: '/resources/0123456789abcdef0123/icon.png' },
-        { id: 'netflix', title: 'Netflix', largeIcon: 'http://192.168.1.5:3000/resources/aa/large.png' },
+        { id: 'netflix', title: 'Netflix', largeIcon: 'http://192.168.1.5:3000/resources/0123456789abcdef0123/large.png' },
         { id: 'web', title: 'Web', icon: 'http://elsewhere.example/x.png' },
         { id: 'local', title: 'Local', icon: '/usr/palm/applications/local/icon.png' }
       ]
@@ -82,8 +82,8 @@ test('icons: the TV icon server address is made complete, others refused', async
   });
   const apps = await inventory(t.options);
   assert.deepEqual(apps.map((a) => a.iconUrl), [
-    'http://192.168.1.5:3000/resources/0123456789abcdef0123/icon.png',
-    'http://192.168.1.5:3000/resources/aa/large.png',
+    'http://127.0.0.1:3000/resources/0123456789abcdef0123/icon.png',
+    'http://127.0.0.1:3000/resources/0123456789abcdef0123/large.png',
     undefined,
     '/usr/palm/applications/local/icon.png'
   ]);

@@ -395,7 +395,6 @@ function publishStatus(running) {
 }
 // The app list needs the pairing. It is only read while the settings app is in
 // front: once per visit, retried every 15 s if the TV did not answer.
-var iconCache = require('./icon-cache');
 var appsVisitDone = false;
 function publishApps() {
   var now = Date.now(),
@@ -412,18 +411,16 @@ function publishApps() {
       apps = apps.filter(function (a) {
         return a && typeof a.id === 'string';
       });
-      // Icons are kept as files next to the list; the list names them.
       appsVisitDone = true;
-      iconCache(shared.DIR, apps, function (icons) {
-        shared.write('app-list.json', {
-          time: Date.now(),
-          apps: apps.map(function (a) {
-            var entry = { id: a.id, title: typeof a.title === 'string' && a.title ? a.title : a.id };
-            if (icons[a.id]) entry.icon = icons[a.id];
-            return entry;
-          })
-        });
-      }, { log: log });
+      shared.write('app-list.json', {
+        time: Date.now(),
+        apps: apps.map(function (a) {
+          var entry = { id: a.id, title: typeof a.title === 'string' && a.title ? a.title : a.id };
+          // Checked by app-inventory: a link to the TV's own icon server or an icon file.
+          if (typeof a.iconUrl === 'string') entry.icon = a.iconUrl;
+          return entry;
+        })
+      });
     },
     function () {
       appsPending = false; // lastAppsAt: tried again in 15 s while still in front
