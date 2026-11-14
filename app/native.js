@@ -413,12 +413,9 @@ function publishApps(soon) {
             return a && typeof a.id === 'string';
           })
           .map(function (a) {
-            var entry = { id: a.id, title: typeof a.title === 'string' && a.title ? a.title : a.id },
-              icon = [a.largeIcon, a.icon, a.mediumIcon].filter(function (i) {
-                // Only the TV's own picture files: the settings page shows them as file:// images.
-                return typeof i === 'string' && /^\/[^\0]{1,500}$/.test(i) && i.indexOf('..') < 0;
-              })[0];
-            if (icon) entry.icon = icon;
+            var entry = { id: a.id, title: typeof a.title === 'string' && a.title ? a.title : a.id };
+            // Checked by app-inventory: the TV's own icon server or its icon files.
+            if (typeof a.iconUrl === 'string') entry.icon = a.iconUrl;
             return entry;
           })
       });

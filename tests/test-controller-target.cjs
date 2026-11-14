@@ -328,9 +328,9 @@ test('publishes status and app list for the settings app', async () => {
   targetNow.id = 'tld.my.customlauncher';
   const c = controller({
     inputQuery: () => Promise.resolve([
-      { id: 'tld.my.customlauncher', title: 'Hearth', icon: '/media/developer/apps/usr/palm/applications/tld.my.customlauncher/icon.png' },
-      { id: 'netflix', title: 'Netflix', icon: 'http://evil/x.png', largeIcon: '/media/cryptofs/apps/usr/palm/applications/netflix/large.png' },
-      { id: 'odd', title: 'Odd', icon: '/a/../../etc/shadow' }
+      { id: 'tld.my.customlauncher', title: 'Hearth', iconUrl: 'http://192.168.1.5:3000/resources/ab/icon.png' },
+      { id: 'netflix', title: 'Netflix', icon: '/ignored/raw/field.png' },
+      { id: 'odd', title: 'Odd', iconUrl: 42 }
     ])
   });
   let h = sharedFile('helper.json');
@@ -345,11 +345,11 @@ test('publishes status and app list for the settings app', async () => {
   assert.deepEqual(
     sharedFile('app-list.json').apps,
     [
-      { id: 'tld.my.customlauncher', title: 'Hearth', icon: '/media/developer/apps/usr/palm/applications/tld.my.customlauncher/icon.png' },
-      { id: 'netflix', title: 'Netflix', icon: '/media/cryptofs/apps/usr/palm/applications/netflix/large.png' },
+      { id: 'tld.my.customlauncher', title: 'Hearth', icon: 'http://192.168.1.5:3000/resources/ab/icon.png' },
+      { id: 'netflix', title: 'Netflix' },
       { id: 'odd', title: 'Odd' }
     ],
-    'app list published, with the TV icon files only'
+    'app list published, with checked icon addresses only'
   );
   const before = sharedFile('helper.json').time;
   c.advance(31000);

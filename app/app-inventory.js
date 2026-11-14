@@ -22,7 +22,21 @@ module.exports = function (options) {
           socket.terminate();
         } catch (_) {}
       if (error) reject(Error(error));
-      else resolve(apps);
+      else {
+        var host = hosts[index - 1];
+        resolve(
+          apps.map(function (a) {
+            var icon = iconAddress(a, host);
+            if (!icon) return a;
+            var copy = {};
+            Object.keys(a).forEach(function (k) {
+              copy[k] = a[k];
+            });
+            copy.iconUrl = icon;
+            return copy;
+          })
+        );
+      }
     }
     function send(message) {
       try {
@@ -240,3 +254,26 @@ module.exports = function (options) {
     }
   });
 };
+
+// The TV lists icons as addresses on its own web server (/resources/<hash>/<file>,
+// reachable at port 3000), sometimes as full addresses on that server, and on
+// some firmware as file paths. Only those three forms are passed on.
+var ICON_KEYS = ['largeIcon', 'icon', 'mediumLargeIcon', 'extraLargeIcon'];
+function iconAddress(app, host) {
+  for (var i = 0; i < ICON_KEYS.length; i++) {
+    var uri = app && app[ICON_KEYS[i]];
+    if (typeof uri !== 'string' || !uri || uri.length > 1024) continue;
+    if (/^\/resources\/[a-fA-F0-9]{16,128}\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(uri))
+      return host ? 'http://' + host + ':3000' + uri : null;
+    var m = /^https?:\/\/([^/:@]+)(:(\d+))?\/[^\s]*$/.exec(uri);
+    if (m) {
+      if (m[1] === host && (!m[3] || ['80', '443', '3000', '3001'].indexOf(m[3]) >= 0))
+        return uri.replace(/^https:\/\/([^/]+):3001/, 'http://$1:3000');
+      continue;
+    }
+    if (/^\/(usr|media)\/[A-Za-z0-9_.\/-]+$/.test(uri) && uri.indexOf('..') < 0)
+      return uri;
+  }
+  return null;
+}
+module.exports.iconAddress = iconAddress;

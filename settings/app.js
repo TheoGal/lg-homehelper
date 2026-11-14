@@ -129,10 +129,13 @@
     });
   }
 
-  // The TV's own icon files, shown the way Hearth does: as file:// pictures.
+  // Icons come from the TV's own icon server (http) or, on some firmware, as
+  // file paths, shown as file:// pictures the way Hearth does.
   function iconAddress(path) {
-    if (typeof path !== 'string' || path.charAt(0) !== '/') return '';
-    return 'file://' + encodeURI(path);
+    if (typeof path !== 'string') return '';
+    if (/^http:\/\//.test(path)) return path;
+    if (path.charAt(0) === '/') return 'file://' + encodeURI(path);
+    return '';
   }
   function addApps(list) {
     var seen = {};
