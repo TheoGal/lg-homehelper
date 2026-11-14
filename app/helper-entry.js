@@ -15,28 +15,10 @@ try {
 // (no redirect). "" or "default" clears the TV choice, falling back to the
 // packaged default if any, else LG Home. The running controller re-reads it.
 function saveTarget(id) {
-  var path = root + '/state/target.json';
-  if (id === '' || id === 'default') {
-    try {
-      fs.unlinkSync(path);
-    } catch (e) {
-      if (e.code !== 'ENOENT') return false;
-    }
-    return true;
-  }
+  var shared = require('./shared');
+  if (id === '' || id === 'default') return shared.remove('target.json');
   if (!target.valid(id) && id !== target.LG_HOME) return false;
-  var staging = path + '.' + process.pid + '.tmp';
-  try {
-    fs.writeFileSync(staging, JSON.stringify({ id: id }), { mode: 420 });
-    fs.chmodSync(staging, 420); // 0644: the Helper service reads it for status.
-    fs.renameSync(staging, path);
-    return true;
-  } catch (e) {
-    try {
-      fs.unlinkSync(staging);
-    } catch (ignore) {}
-    return false;
-  }
+  return shared.write('target.json', { id: id });
 }
 function launchApp(id, launchParams, done) {
   // Anonymous public-bus caller: the controller already owns the app LS2 name.

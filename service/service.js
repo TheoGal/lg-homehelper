@@ -7,12 +7,6 @@ var secureState = require('./state-permissions');
 secureState(__dirname + '/state', function (x) {
   console.error(JSON.stringify(x));
 });
-secureState(
-  '/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper/state',
-  function (x) {
-    console.error(JSON.stringify(x));
-  }
-);
 var statePath = __dirname + '/state/startup-state.json',
   name = 'io.github.theogal.homehelper.boot';
 function read() {
@@ -63,42 +57,51 @@ function complete(message, result) {
     );
   else message.respond({ returnValue: true, result: result });
 }
-// Mirrors app/target.js; the service sandbox cannot import app modules.
-// id null means the Home button goes to LG Home.
-var APP_ROOT = '/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper';
+// On newer webOS this service's sandbox cannot see the app's folder, only its
+// own. The app side (not sandboxed) writes what the settings app needs into
+// this folder (see app/shared.js): the TV's choice, the helper's status, the
+// pairing status and the app list. Nothing secret: the key stays with the app.
+var SHARED = __dirname + '/state';
 var LG_HOME = 'com.webos.app.home';
-function targetId(path) {
+function readShared(name) {
   try {
-    var v = JSON.parse(fs.readFileSync(path, 'utf8'));
-    return v &&
-      typeof v.id === 'string' &&
-      /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(v.id)
-      ? v.id
-      : null;
+    return JSON.parse(fs.readFileSync(SHARED + '/' + name, 'utf8'));
   } catch (e) {
     return null;
   }
 }
+function validId(id) {
+  return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(id);
+}
+// The running helper refreshes helper.json at least every 30 s.
+function helperStatus() {
+  var h = readShared('helper.json');
+  return h && typeof h.time === 'number' ? h : null;
+}
+function running() {
+  var h = helperStatus(),
+    age = h ? Date.now() - h.time : Infinity;
+  return !!(h && h.running === true && age >= -5000 && age < 75000);
+}
+// Mirrors app/target.js: the TV choice, then the default packaged on a PC
+// (reported by the helper), then nothing (Home goes to LG Home).
 function homeTarget() {
-  var tv = targetId(APP_ROOT + '/state/target.json'),
-    packaged = targetId(APP_ROOT + '/target.json');
-  if (packaged === LG_HOME) packaged = null;
+  var choice = readShared('target.json'),
+    tv = choice && validId(choice.id) ? choice.id : null,
+    h = helperStatus(),
+    packaged = h && validId(h.packaged) && h.packaged !== LG_HOME ? h.packaged : null;
   if (tv) return { id: tv === LG_HOME ? null : tv, source: 'tv', packaged: packaged };
   return { id: packaged, source: packaged ? 'packaged' : 'none', packaged: packaged };
 }
-// Pairing lets the controller see the foreground app and return to the target
-// after an app closes. The key itself stays private; only its presence is reported.
+// Paired: as last reported by the helper, or a pairing that just finished.
 function pairing() {
-  var paired = false,
-    status = null;
-  try {
-    fs.statSync(APP_ROOT + '/state/ssap-key.json');
-    paired = true;
-  } catch (e) {}
-  try {
-    status = JSON.parse(fs.readFileSync(APP_ROOT + '/state/pair-status.json', 'utf8'));
-  } catch (e) {}
-  return { paired: paired, status: status };
+  var h = helperStatus(),
+    status = readShared('pair-status.json'),
+    justPaired =
+      !!status &&
+      (status.state === 'paired' || status.state === 'already-paired') &&
+      (!h || status.time >= h.time);
+  return { paired: !!(h && h.paired) || justPaired, status: status };
 }
 service.register('target', function (m) {
   m.respond({
@@ -206,6 +209,10 @@ function readDebug(p) {
   }
 }
 
+// A shortcut only: the helper itself refuses an automatic start while its
+// stop latch is set. This service's sandbox usually cannot see the app's
+// folder at all, so any error counts as "not stopped" rather than blocking
+// every boot start.
 function blocked() {
   return ['blocked', 'watchdog'].some(function (name) {
     try {
@@ -215,57 +222,14 @@ function blocked() {
       );
       return true;
     } catch (e) {
-      return e.code !== 'ENOENT';
+      return false;
     }
   });
 }
 
-var inventoryPending = null;
 service.register('listApps', function (message) {
-  if (!inventoryPending)
-    inventoryPending = require('./app-inventory')({ details: true });
-  var request = inventoryPending;
-  request.then(
-    function (apps) {
-      if (inventoryPending === request) inventoryPending = null;
-      message.respond(
-        Array.isArray(apps)
-          ? { returnValue: true, apps: apps }
-          : {
-              returnValue: true,
-              apps: apps.apps,
-              installedIds: apps.installedIds
-            }
-      );
-    },
-    function () {
-      if (inventoryPending === request) inventoryPending = null;
-      message.respond({
-        returnValue: false,
-        errorText: 'App inventory unavailable'
-      });
-    }
-  );
+  var list = readShared('app-list.json');
+  if (list && Array.isArray(list.apps) && list.apps.length)
+    message.respond({ returnValue: true, apps: list.apps, time: list.time });
+  else message.respond({ returnValue: false, errorText: 'App list not ready yet' });
 });
-
-// Check the controller identity as well as its PID; stale state is not running.
-function running() {
-  try {
-    var pid = fs
-      .readFileSync(
-        '/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper/state/controller.pid',
-        'utf8'
-      )
-      .trim();
-    if (!/^[1-9][0-9]*$/.test(pid)) return false;
-    var args = fs.readFileSync('/proc/' + pid + '/cmdline', 'utf8').split('\0');
-    return (
-      args[0] === 'io.github.theogal.homehelper' ||
-      args.indexOf(
-        '/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper/native.js'
-      ) >= 0
-    );
-  } catch (_) {
-    return false;
-  }
-}

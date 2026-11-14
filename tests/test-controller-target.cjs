@@ -13,6 +13,11 @@ const source = path.join(__dirname, '../app');
 const dir =
   '/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper/state/';
 const targetNow = { id: null };
+// The folder the helper publishes into for the settings app (see app/shared.js).
+const sharedDir = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'helper-shared-'));
+const sharedFile = (name) => {
+  try { return JSON.parse(fs.readFileSync(path.join(sharedDir, name), 'utf8')); } catch (e) { return null; }
+};
 function controller({
   blocked = false,
   watchdog = false,
@@ -140,12 +145,22 @@ function controller({
         };
         return storage;
       }
+      if (n === './shared') {
+        const real = require(path.join(source, 'shared.js'));
+        return {
+          DIR: sharedDir,
+          write: (name, value) => real.write(name, value, sharedDir),
+          read: (name) => real.read(name, sharedDir),
+          remove: (name) => real.remove(name, sharedDir)
+        };
+      }
       if (n === './target') {
         const get = () => targetNow.id;
         get.valid = (id) => typeof id === 'string' && id !== 'com.webos.app.home';
         get.LG_HOME = 'com.webos.app.home';
         get.resolve = () => ({ id: targetNow.id, source: targetNow.id ? 'tv' : 'none' });
         get.refresh = get;
+        get.packaged = () => null;
         return get;
       }
       if (n === './app-inventory')
@@ -306,4 +321,35 @@ test('pairing rejected while running: stops like Stop does', () => {
   c.advance(300);
   assert.equal(c.launches.at(-1), 'com.webos.app.home', 'returns to LG Home');
   assert.equal(c.exit, 0);
+});
+
+test('publishes status and app list for the settings app', async () => {
+  for (const f of fs.readdirSync(sharedDir)) fs.unlinkSync(path.join(sharedDir, f));
+  targetNow.id = 'tld.my.customlauncher';
+  const c = controller({
+    inputQuery: () => Promise.resolve([{ id: 'tld.my.customlauncher', title: 'Hearth' }, { id: 'netflix', title: 'Netflix' }])
+  });
+  let h = sharedFile('helper.json');
+  assert.equal(h.running, true, 'running published at start');
+  assert.equal(h.paired, false, 'no key yet');
+  assert.equal(h.target.id, 'tld.my.customlauncher');
+  assert.equal(sharedFile('app-list.json'), null, 'no app list without a pairing');
+  c.files.set(dir + 'ssap-key.json', '{"key":"k"}');      // paired
+  c.advance(500);
+  await new Promise((r) => setImmediate(r));
+  assert.equal(sharedFile('helper.json').paired, true, 'pairing published');
+  assert.deepEqual(
+    sharedFile('app-list.json').apps,
+    [{ id: 'tld.my.customlauncher', title: 'Hearth' }, { id: 'netflix', title: 'Netflix' }],
+    'app list published'
+  );
+  const before = sharedFile('helper.json').time;
+  c.advance(31000);
+  assert.ok(sharedFile('helper.json').time > before, 'refreshed at least every 30 s');
+  c.command('stop');
+  c.advance(400);
+  c.close(0);
+  c.cleanup();
+  c.advance(300);
+  assert.equal(sharedFile('helper.json').running, false, 'stopped published on exit');
 });

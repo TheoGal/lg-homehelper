@@ -1,7 +1,9 @@
 'use strict';
 // Pair Home Helper with the TV's own remote-control service (wss://TV:3001)
 // so it can see which app is in front, and save the key as state/ssap-key.json.
-// The TV shows an "Allow" prompt; accept it with the remote. Writes state/pair-status.json so the settings app can follow.
+// The TV shows an "Allow" prompt; accept it with the remote. Writes
+// pair-status.json into the shared folder (see shared.js) so the settings app
+// can follow; the key itself stays private in the app's state folder.
 var fs = require('fs'),
   os = require('os');
 // Same full manifest as screen-watch.js and app-inventory.js: webOS 3.x keeps
@@ -46,21 +48,18 @@ function addresses() {
   });
   return list;
 }
-module.exports = function (data, done) {
+module.exports = function (data, done, sharedDirectory) {
   var keyPath = data + '/ssap-key.json',
-    statusPath = data + '/pair-status.json',
     gid,
     finished = false,
     socket = null,
     timer;
   function status(state, reason) {
-    try {
-      atomic(
-        statusPath,
-        JSON.stringify({ state: state, reason: reason || null, time: Date.now() }),
-        420
-      );
-    } catch (ignore) {}
+    require('./shared').write('pair-status.json', {
+      state: state,
+      reason: reason || null,
+      time: Date.now()
+    }, sharedDirectory);
   }
   function finish(state, reason) {
     if (finished) return;

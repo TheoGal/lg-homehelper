@@ -1,6 +1,7 @@
 'use strict';
 // Which app the Home button opens.
-// Order: choice made on the TV (state/target.json), then the default packaged
+// Order: choice made on the TV (target.json in the shared folder, see
+// shared.js, so the settings app's service can read it too), then the default packaged
 // on a PC before install (target.json next to this file). With neither,
 // the result is null and the Home button keeps going to LG Home.
 var fs = require('fs');
@@ -29,13 +30,15 @@ function readId(path) {
     return null;
   }
 }
-function resolve(directory) {
-  var dir = directory || __dirname,
-    tv = readId(dir + '/state/target.json');
+function packagedId(directory) {
+  var packaged = readId((directory || __dirname) + '/target.json');
+  return packaged && packaged !== LG_HOME ? packaged : null;
+}
+function resolve(directory, sharedDirectory) {
+  var tv = readId((sharedDirectory || require('./shared').DIR) + '/target.json');
   if (tv) return { id: tv === LG_HOME ? null : tv, source: 'tv' };
-  var packaged = readId(dir + '/target.json');
-  if (packaged && packaged !== LG_HOME)
-    return { id: packaged, source: 'packaged' };
+  var packaged = packagedId(directory);
+  if (packaged) return { id: packaged, source: 'packaged' };
   return { id: null, source: 'none' };
 }
 var cached,
@@ -52,6 +55,7 @@ function get() {
 get.valid = valid;
 get.LG_HOME = LG_HOME;
 get.resolve = resolve;
+get.packaged = packagedId;
 get.refresh = function () {
   cached = undefined;
   return get();

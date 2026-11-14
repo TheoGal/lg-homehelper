@@ -142,12 +142,19 @@
   }
 
   // Sideloaded web apps may not list apps themselves on newer webOS, so ask the
-  // Helper service first: it reads the list over the TV's pairing connection.
-  // The platform's own lists are only a fallback for TVs that allow them.
-  var appsLoaded = false;
+  // Helper service: the running helper publishes the list over the TV's pairing
+  // connection. Right after Start that takes a few seconds, so keep asking for
+  // up to 30 s. The platform's own lists are only a last resort.
+  var appsLoaded = false, listTries = 0;
   function loadApps() {
     call('luna://' + HELPER + '.service/listApps', {}, function (r) {
-      if (r && r.returnValue && r.apps && r.apps.length) return done(r.apps);
+      if (r && r.returnValue && r.apps && r.apps.length) { listTries = 0; return done(r.apps); }
+      if (++listTries < 15) {
+        note('Finding your apps...');
+        setTimeout(loadApps, 2000);
+        return;
+      }
+      listTries = 0;
       call('luna://com.webos.applicationManager/listLaunchPoints', {}, function (r2) {
         if (r2 && r2.returnValue && r2.launchPoints && r2.launchPoints.length) return done(r2.launchPoints);
         call('luna://com.webos.applicationManager/listApps', {}, function (r3) {
@@ -159,7 +166,7 @@
       });
     });
     function done(list) {
-      if (list.length) appsLoaded = true;
+      if (list.length) { appsLoaded = true; note(''); }
       addApps(list);
       render();
       refreshTarget();
@@ -265,5 +272,9 @@
   });
   document.addEventListener('webOSRelaunch', refreshTarget);
 
-  loadApps();
+  // Show the LG Home entry at once; the status check loads the app list when
+  // the helper is paired, or explains what to do.
+  addApps([]);
+  render();
+  refreshTarget();
 })();

@@ -379,6 +379,7 @@ function cancelResume() {
   resumePendingUntil = 0;
   resumeGuardUntil = 0;
   lgHomeSince = null;
+  publishStatus(false);
 }
 log({
   event: 'start',
@@ -388,6 +389,67 @@ log({
   target: target.resolve(),
   diagnosticsSchema: 1
 });
+// Status and app list for the settings app (see shared.js): its service runs
+// in a sandbox that cannot see this folder, so the running helper publishes
+// what it needs into the service's own folder. Nothing secret goes there.
+var shared = require('./shared'),
+  lastStatus = '',
+  lastStatusAt = 0,
+  lastAppsAt = 0,
+  appsPending = false;
+function hasPairingKey() {
+  return fs.existsSync(data + '/ssap-key.json');
+}
+function publishStatus(running) {
+  var resolved = target.resolve(),
+    paired = hasPairingKey(),
+    key = JSON.stringify([running, resolved, paired]),
+    now = Date.now();
+  // Refresh at least every 30 s while running: the service treats an older
+  // file as "not running" (a crash cannot clean up after itself).
+  if (running && key === lastStatus && now >= lastStatusAt && now - lastStatusAt < 30000) return;
+  lastStatus = key;
+  lastStatusAt = now;
+  shared.write('helper.json', {
+    time: now,
+    pid: process.pid,
+    running: running,
+    paired: paired,
+    target: resolved,
+    packaged: target.packaged()
+  });
+}
+// The app list needs the pairing. Refreshed every 10 minutes, and when the
+// settings app comes to the front (at most every 15 s).
+function publishApps(soon) {
+  var now = Date.now(),
+    age = now - lastAppsAt;
+  if (appsPending || !hasPairingKey() || (lastAppsAt && age >= 0 && age < (soon ? 15000 : 600000))) return;
+  appsPending = true;
+  lastAppsAt = now;
+  readCatalog().then(
+    function (catalog) {
+      appsPending = false;
+      var apps = Array.isArray(catalog) ? catalog : catalog && catalog.apps;
+      if (!Array.isArray(apps)) return;
+      shared.write('app-list.json', {
+        time: Date.now(),
+        apps: apps
+          .filter(function (a) {
+            return a && typeof a.id === 'string';
+          })
+          .map(function (a) {
+            return { id: a.id, title: typeof a.title === 'string' && a.title ? a.title : a.id };
+          })
+      });
+    },
+    function () {
+      appsPending = false;
+      lastAppsAt = now - 600000 + 30000; // try again in 30 s
+    }
+  );
+}
+publishStatus(true);
 function launch(id, done, params) {
   var request = ++launchSequence;
   diagnostic('launch-request', { launchSequence: request, id: id });
@@ -1053,6 +1115,8 @@ var timer = setInterval(function () {
   if (stopping) return;
   refreshWatchCatalog();
   homeControl.sync();
+  publishStatus(true);
+  publishApps(false);
   homeChannels.forEach(readHomeRequest);
   try {
     var raw = fs.readFileSync(data + '/control.json', 'utf8');
@@ -1261,6 +1325,7 @@ var screenWatch = require('./screen-watch')(
     lastForegroundAt = monotonic();
     log({ event: 'foreground', id: id });
     diagnostic('foreground');
+    if (id === 'io.github.theogal.homehelper.settings') publishApps(true);
     var exited = screenPolicy.next(id, monotonic());
     if (
       exited &&
@@ -1347,6 +1412,7 @@ var screenWatch = require('./screen-watch')(
     // The TV no longer accepts the pairing: stop the same way Stop does. Start
     // in the settings app asks the TV again; boot never starts without a key.
     log({ event: 'pairing-revoked-stop' });
+    shared.write('pair-status.json', { state: 'failed', reason: 'revoked', time: Date.now() });
     try {
       require('./state-permissions').requestStop(data);
     } catch (e) {

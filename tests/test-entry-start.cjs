@@ -11,16 +11,18 @@ const { spawnSync } = require('node:child_process');
 
 const app = path.join(__dirname, '../app');
 const ROOT = '/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper';
+const SHARED = '/media/developer/apps/usr/palm/services/io.github.theogal.homehelper.service/state';
 
 function run(withKey, params) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'helper-entry-'));
   for (const name of fs.readdirSync(app)) {
     if (name.endsWith('.js')) {
-      fs.writeFileSync(path.join(dir, name), fs.readFileSync(path.join(app, name), 'utf8').split(ROOT).join(dir));
+      fs.writeFileSync(path.join(dir, name), fs.readFileSync(path.join(app, name), 'utf8').split(ROOT).join(dir).split(SHARED).join(dir + '/shared'));
     }
   }
   fs.cpSync(path.join(app, 'vendor'), path.join(dir, 'vendor'), { recursive: true });
   fs.mkdirSync(path.join(dir, 'state'));
+  fs.mkdirSync(path.join(dir, 'shared'));
   // Fake controller launcher: records that it was started.
   fs.writeFileSync(path.join(dir, 'detach'), '#!/bin/sh\ntouch "$(dirname "$0")/started"\n', { mode: 0o755 });
   if (withKey) fs.writeFileSync(path.join(dir, 'state/ssap-key.json'), '{"key":"saved"}');
@@ -32,8 +34,8 @@ function run(withKey, params) {
   const result = {
     exit: r.status,
     started: fs.existsSync(path.join(dir, 'started')),
-    pairStatus: fs.existsSync(path.join(dir, 'state/pair-status.json'))
-      ? JSON.parse(fs.readFileSync(path.join(dir, 'state/pair-status.json'), 'utf8')).state
+    pairStatus: fs.existsSync(path.join(dir, 'shared/pair-status.json'))
+      ? JSON.parse(fs.readFileSync(path.join(dir, 'shared/pair-status.json'), 'utf8')).state
       : null
   };
   fs.rmSync(dir, { recursive: true });
