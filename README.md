@@ -43,8 +43,8 @@ After installing you'll see **two tiles** in LG Home: **Home Helper** and
 **Home Helper Settings**. Both open the settings screen. This is deliberate:
 apps that install invisibly are annoying, because you can't see they're there
 or remove them from the TV like any other app. Both parts show up, so both can
-be found and uninstalled from LG's own app menu. (webOS Dev Manager installs
-apps but doesn't offer a way to remove them.)
+be found and uninstalled from LG's own app menu. (webOS Dev Manager may not
+offer to remove apps installed from a loose .ipk file.)
 
 ## Set up
 
