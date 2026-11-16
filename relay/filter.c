@@ -32,10 +32,13 @@ int filter_event(struct filter*f,const struct ev*e,uint64_t now){
 int filter_timeout(struct filter*f,uint64_t now){(void)f;(void)now;return 0;}
 
 /* Never learnable or mappable: Home, Back, OK, arrows, pointer buttons and
- * cursor, volume, mute, channel, digits, power and the reserved code 0. */
+ * cursor, volume, mute, channel, number keys (both kinds of codes), the four
+ * coloured (teletext) keys, power and the reserved code 0. */
 int keymap_learnable(unsigned code){
  if(code==0||code>=KEYMAP_CODES)return 0;
- if(code>=2&&code<=11)return 0;                 /* digits */
+ if(code>=2&&code<=11)return 0;                 /* number keys */
+ if(code>=512&&code<=521)return 0;              /* number keys, keypad codes */
+ if(code>=398&&code<=401)return 0;              /* red, green, yellow, blue */
  if(code>=272&&code<=287)return 0;              /* pointer buttons */
  static const unsigned blocked[]={773,412,1198,1199,28,352,103,105,106,108,113,114,115,116,402,403,1};
  for(unsigned i=0;i<sizeof blocked/sizeof blocked[0];i++)if(code==blocked[i])return 0;

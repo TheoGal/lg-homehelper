@@ -6,8 +6,8 @@
 //   learn.json    { state: requested|listening|learned|cancelled|timeout,
 //                   time, code? }
 // The relay never learns or maps Home, Back, OK, arrows, pointer, volume,
-// channel, digits or power; the same list is kept here so nothing else can be
-// saved either.
+// channel, number keys, the coloured keys or power; the same list is kept here
+// so nothing else can be saved either.
 var shared = require('./shared');
 
 var MAX = 16;
@@ -20,6 +20,8 @@ function learnable(code) {
     code > 0 &&
     code < 4096 &&
     !(code >= 2 && code <= 11) &&
+    !(code >= 512 && code <= 521) &&
+    !(code >= 398 && code <= 401) &&
     !(code >= 272 && code <= 287) &&
     BLOCKED.indexOf(code) < 0
   );

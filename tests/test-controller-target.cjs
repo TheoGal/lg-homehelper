@@ -457,6 +457,8 @@ test('a mapped button opens its app; the list reaches the relay', () => {
   c.foreground(SETTINGS_APP);
   assert(buttons.set(1300, 'netflix', sharedDir));
   assert(!buttons.set(773, 'netflix', sharedDir), 'Home can never be mapped');
+  for (const code of [2, 11, 398, 401, 512, 521])
+    assert(!buttons.set(code, 'netflix', sharedDir), 'number and coloured keys can never be mapped');
   c.advance(500);
   assert.match(relayWrites(c), /CM1300/, 'relay told which button to catch');
   relayLine(c, 'KEY 1300');
