@@ -105,13 +105,13 @@ int main(int argc,char**argv){
  if(startup_reason){if(!generation_current()){generation_cancelled=1;latch_stop(29);}if(startup_reason==14)report("FAIL source-held\n");if(startup_reason==16)report("FAIL destination-busy\n");return startup_reason;}
  if(!generation_current()){generation_cancelled=1;latch_stop(29);close(in);close(out);if(ir>=0)close(ir);return 29;}
  if(ioctl(in,GRAB,1)<0){report("FAIL grab\n");return 17;}
- struct filter f={0},irf={0};uint64_t last=ms(),irDown=0;int reason=0,irSyncLost=0;struct pollfd p[3]={{in,POLLIN,0},{0,POLLIN,0},{ir,POLLIN,0}};
+ struct filter f={0},irf={0};static struct keymap km;memset(&km,0,sizeof km);uint64_t last=ms(),irDown=0;int reason=0,irSyncLost=0;struct pollfd p[3]={{in,POLLIN,0},{0,POLLIN,0},{ir,POLLIN,0}};
  if(!generation_current()){reason=29;generation_cancelled=1;}else report("READY\n");
  while(!generation_cancelled&&!stop&&!output_failed){if(!generation_current()){reason=29;generation_cancelled=1;break;}uint64_t now=ms();if(now-last>2000){reason=20;break;}(void)filter_timeout(&f,now);
  int r=poll(p,3,50);if(r<0){if(errno==EINTR)continue;reason=23;break;}
  if(!generation_current()){reason=29;generation_cancelled=1;break;}
  if(p[1].revents&(POLLHUP|POLLERR)){reason=24;break;}
- if(p[1].revents&POLLIN){char b[64];ssize_t n=read(0,b,sizeof b);if(n<=0){reason=24;break;}last=ms();for(int i=0;i<n;i++){if(b[i]=='D'){f.disabled=irf.disabled=1;f.home=irf.home=0;f.count=irf.count=0;irDown=0;}if(b[i]=='E'){f.disabled=irf.disabled=0;f.home=irf.home=0;f.count=irf.count=0;irDown=0;}power_command(b[i]);if(b[i]=='Q')stop=1;if(b[i]=='S')raise(SIGSTOP);}if(report("P\n")<0)break;}
+ if(p[1].revents&POLLIN){char b[64];ssize_t n=read(0,b,sizeof b);if(n<=0){reason=24;break;}last=ms();for(int i=0;i<n;i++){if(b[i]=='D'){f.disabled=irf.disabled=1;f.home=irf.home=0;f.count=irf.count=0;irDown=0;}if(b[i]=='E'){f.disabled=irf.disabled=0;f.home=irf.home=0;f.count=irf.count=0;irDown=0;}power_command(b[i]);keymap_command(&km,b[i]);if(b[i]=='Q')stop=1;if(b[i]=='S')raise(SIGSTOP);}if(report("P\n")<0)break;}
  /* Losing the IR source only disables IR Home; M-RCU keeps working. */
  if(p[2].fd>=0&&p[2].revents&(POLLHUP|POLLERR|POLLNVAL)){close(p[2].fd);p[2].fd=-1;if(report("IR_LOST\n")<0)break;}
  else if(p[2].fd>=0&&p[2].revents&POLLIN){struct ev e[64];ssize_t n=read(p[2].fd,e,sizeof e);
@@ -131,7 +131,9 @@ int main(int argc,char**argv){
   if(generation_cancelled||stop||output_failed)break;
  }
  if(p[0].revents&(POLLHUP|POLLERR)){reason=25;break;}
- if(p[0].revents&POLLIN){struct ev e[64];ssize_t n=read(in,e,sizeof e);if(n<0&&errno==EAGAIN)continue;if(n<=0||n%sizeof e[0]){reason=26;break;}for(int i=0;i<n/(int)sizeof e[0];i++){if(!generation_current()){reason=29;generation_cancelled=1;break;}/* Observe Back without consuming or changing its events. */
+ if(p[0].revents&POLLIN){struct ev e[64];ssize_t n=read(in,e,sizeof e);if(n<0&&errno==EAGAIN)continue;if(n<=0||n%sizeof e[0]){reason=26;break;}for(int i=0;i<n/(int)sizeof e[0];i++){if(!generation_current()){reason=29;generation_cancelled=1;break;}/* Remote buttons: a learned or mapped press is reported and never reaches webOS. */
+int k=keymap_event(&km,e+i);if(k==KM_LEARNED){if(report("LEARN %u\n",(unsigned)e[i].code)<0)break;continue;}if(k==KM_MAPPED){if(report("KEY %u\n",(unsigned)e[i].code)<0)break;continue;}if(k==KM_DROP)continue;
+/* Observe Back without consuming or changing its events. */
 if(e[i].type==1&&e[i].code==412){if(e[i].value==1)report("BACK_DOWN\n");if(e[i].value==0)report("BACK_UP\n");if(output_failed)break;}
 int a=filter_event(&f,e+i,ms());if(a==RELEASE){reason=27;stop=1;break;}if(!generation_current()){reason=29;generation_cancelled=1;break;}if(a==OPEN_HOME){if(report("HOME\n")<0)break;continue;}if(a==DROP)continue;if(write(out,e+i,sizeof e[i])!=sizeof e[i]){reason=28;stop=1;break;}}}
  }

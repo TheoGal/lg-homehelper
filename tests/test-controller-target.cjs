@@ -425,3 +425,67 @@ test('wake into LG Home: the chosen app replaces it', () => {
   c.advance(5000);
   assert.equal(opened(c, 'tld.my.customlauncher'), before + 1, 'chosen app opened once');
 });
+
+// Remote buttons: learning a button in the settings app and opening its app.
+const buttons = require('../app/buttons');
+const SETTINGS_APP = 'io.github.theogal.homehelper.settings';
+const relayWrites = (c) => c.workers[0].writes.filter((w) => w !== 'P').join('');
+function clearButtons() {
+  for (const f of ['buttons.json', 'learn.json']) fs.rmSync(path.join(sharedDir, f), { force: true });
+}
+
+test('learning a button: requested, listening, learned', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  clearButtons();
+  const c = controller();
+  assert.match(relayWrites(c), /C/, 'empty button list sent when the relay is ready');
+  c.foreground(SETTINGS_APP);
+  buttons.setLearn('requested', sharedDir);
+  c.advance(500);
+  assert.match(relayWrites(c), /L/, 'relay told to learn');
+  assert.equal(buttons.learnState(sharedDir).state, 'listening');
+  relayLine(c, 'LEARN 1300');
+  const s = buttons.learnState(sharedDir);
+  assert.equal(s.state, 'learned');
+  assert.equal(s.code, 1300);
+});
+
+test('a mapped button opens its app; the list reaches the relay', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  clearButtons();
+  const c = controller();
+  c.foreground(SETTINGS_APP);
+  assert(buttons.set(1300, 'netflix', sharedDir));
+  assert(!buttons.set(773, 'netflix', sharedDir), 'Home can never be mapped');
+  c.advance(500);
+  assert.match(relayWrites(c), /CM1300/, 'relay told which button to catch');
+  relayLine(c, 'KEY 1300');
+  c.advance(200);
+  assert.equal(c.launches.at(-1), 'netflix');
+  relayLine(c, 'KEY 1400');                         // not mapped (relay would not send it)
+  c.advance(200);
+  assert.equal(c.launches.at(-1), 'netflix', 'unknown button opens nothing');
+  assert(buttons.set(1300, '', sharedDir));         // forgotten
+  c.advance(500);
+  assert.match(relayWrites(c), /CM1300C$/, 'empty list sent again');
+});
+
+test('learning stops when the settings app leaves the screen or after 20 s', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  clearButtons();
+  const c = controller();
+  c.foreground(SETTINGS_APP);
+  buttons.setLearn('requested', sharedDir);
+  c.advance(500);
+  c.foreground('netflix');
+  assert.match(relayWrites(c), /Ll/, 'relay told to stop learning');
+  assert.equal(buttons.learnState(sharedDir).state, 'cancelled');
+  c.foreground(SETTINGS_APP);
+  const again = Date.now() + 1;
+  while (Date.now() < again);                       // a newer request
+  buttons.setLearn('requested', sharedDir);
+  c.advance(500);
+  c.advance(21000);
+  assert.equal(buttons.learnState(sharedDir).state, 'timeout');
+  assert.match(relayWrites(c), /Ll.*Ll/s);
+});
