@@ -196,10 +196,10 @@ Home Helper.
 
 | Package | Tile | Opens |
 | --- | --- | --- |
-| `io.github.theogal.lgsettings_1.0.0_arm.ipk` | **LG Settings** (solid gear) | LG's settings, the same as the gear in LG Home |
-| `io.github.theogal.lgquicksettings_1.0.0_arm.ipk` | **LG Quick Settings** (outlined gear) | LG's Quick Settings panel, the same as a short press of the remote's settings button |
-| `io.github.theogal.lgnotifications_1.0.0_arm.ipk` | **LG Notifications** (bell) | LG's notifications |
-| `io.github.theogal.lglivetv_1.0.0_arm.ipk` | **Live TV** (TV) | The TV tuner (Live TV source) |
+| `io.github.theogal.lgsettings_1.0.1_arm.ipk` | **LG Settings** (solid gear) | LG's settings, the same as the gear in LG Home |
+| `io.github.theogal.lgquicksettings_1.0.1_arm.ipk` | **LG Quick Settings** (outlined gear) | LG's Quick Settings panel, the same as a short press of the remote's settings button |
+| `io.github.theogal.lgnotifications_1.0.1_arm.ipk` | **LG Notifications** (bell) | LG's notifications |
+| `io.github.theogal.lglivetv_1.0.1_arm.ipk` | **Live TV** (TV) | The TV tuner (Live TV source) |
 
 Install them the same way as Home Helper, then add the tiles to your launcher
 like any other app. Remove them from LG's app menu. A tile has no window of its own: it asks webOS to open the

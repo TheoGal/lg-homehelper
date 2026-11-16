@@ -6,6 +6,11 @@ white symbols on coloured tiles for the four LG shortcuts.
 
 Writes icon.png (80 px) and largeIcon.png (130 px) into each app folder, and the
 256 px README icon to docs/icon.png. Needs Pillow (pip install pillow).
+
+App icons are full squares, coloured to the edges: LG Home and launchers such as
+Hearth give every tile their own rounded shape, and corners rounded in the icon
+itself show up as notches or a second, mismatched curve. Only the README icon is
+rounded here, since GitHub shows it as it is.
 """
 import math
 from pathlib import Path
@@ -26,10 +31,19 @@ DARK_GREY = (72, 76, 84)
 
 def canvas(size, background):
     W = size * SCALE
-    im = Image.new('RGBA', (W, W), (0, 0, 0, 0))
+    im = Image.new('RGBA', (W, W), background + (255,))
     d = ImageDraw.Draw(im)
-    d.rounded_rectangle([0, 0, W - 1, W - 1], radius=W // 5, fill=background + (255,))
     return im, d, W
+
+
+def rounded(im):
+    """The README icon only: rounded corners, as a launcher would show it."""
+    W = im.size[0]
+    mask = Image.new('L', (W, W), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, W - 1, W - 1], radius=W // 5, fill=255)
+    out = Image.new('RGBA', (W, W), (0, 0, 0, 0))
+    out.paste(im, (0, 0), mask)
+    return out
 
 
 def stroke(W):
@@ -208,7 +222,7 @@ def main():
     save(lg_quick_settings, 'shortcuts/lgquicksettings')
     save(lg_notifications, 'shortcuts/lgnotifications')
     save(lg_live_tv, 'shortcuts/lglivetv')
-    home_helper(256).resize((256, 256), Image.LANCZOS).save(ROOT / 'docs/icon.png', optimize=True)
+    rounded(home_helper(256)).resize((256, 256), Image.LANCZOS).save(ROOT / 'docs/icon.png', optimize=True)
     print('icons written')
 
 
