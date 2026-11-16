@@ -6,7 +6,7 @@ CC=${CC:-cc}
 out=build/native-tests
 mkdir -p "$out"
 cd relay
-for t in test_filter test_keymap test_startup test_relay_ir test_relay_keys test_relay_startup test_relay_watchdog; do
+for t in test_filter test_startup test_relay_ir test_relay_startup test_relay_watchdog; do
   extra=""
   [ "$t" = test_startup ] || extra=filter.c
   "$CC" -w -o "../$out/$t" "$t.c" $extra

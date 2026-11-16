@@ -49,13 +49,6 @@ function hasKey() {
 var saved = null;
 if (typeof params.nativeHomeTarget === 'string')
   saved = saveTarget(params.nativeHomeTarget);
-// Remote buttons (see buttons.js). Learning: true asks the running controller to
-// catch the next button press, false cancels. A button: { code, app }, where
-// app "" forgets the button. The running controller picks both up.
-if (typeof params.nativeHomeLearn === 'boolean')
-  saved = require('./buttons').setLearn(params.nativeHomeLearn ? 'requested' : 'cancelled');
-if (params.nativeHomeButton && typeof params.nativeHomeButton === 'object')
-  saved = require('./buttons').set(params.nativeHomeButton.code, params.nativeHomeButton.app);
 var starting =
   params.nativeHomeAuto === true ||
   params.nativeHomeStart === true ||
