@@ -119,6 +119,8 @@ Developer Mode apps.
 
 - If Developer Mode expires, the TV removes these apps; reinstall and repeat
   the setup.
+- After updating, restart the TV (or uninstall both apps and install them
+  again) so the new version's background parts are the ones running.
 - At power-on, Home Helper only replaces LG Home. If your TV is set to start
   with its last input or app, that is what you get. If it starts with LG Home,
   you may see it briefly before your app opens.
