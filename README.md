@@ -23,8 +23,8 @@ You need a TV with **Developer Mode** on, and **BOTH** packages from the
 
 | Package | What it is |
 | --- | --- |
-| `io.github.theogal.homehelper_1.0.0_arm.ipk` | **Home Helper**: the background helper that catches the Home button |
-| `io.github.theogal.homehelper.settings_1.0.0_all.ipk` | **Home Helper Settings**: start the helper and pick the app |
+| `io.github.theogal.homehelper_1.0.1_arm.ipk` | **Home Helper**: the background helper that catches the Home button |
+| `io.github.theogal.homehelper.settings_1.0.1_all.ipk` | **Home Helper Settings**: start the helper and pick the app |
 
 **With webOS Dev Manager** (easiest): install
 [webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop) on your
@@ -33,8 +33,8 @@ computer, add your TV, then open its Apps page and install both .ipk files.
 **With the webOS CLI** (`ares-cli`):
 
 ```
-ares-install --device tv io.github.theogal.homehelper_1.0.0_arm.ipk
-ares-install --device tv io.github.theogal.homehelper.settings_1.0.0_all.ipk
+ares-install --device tv io.github.theogal.homehelper_1.0.1_arm.ipk
+ares-install --device tv io.github.theogal.homehelper.settings_1.0.1_all.ipk
 ```
 
 ### Two tiles, on purpose
@@ -179,7 +179,7 @@ python3 scripts/build.py --target com.plexapp.plex
 To change the default in an already built package (no toolchain needed):
 
 ```
-python3 scripts/build.py --retarget dist/io.github.theogal.homehelper_1.0.0_arm.ipk --target org.jellyfin.webos
+python3 scripts/build.py --retarget dist/io.github.theogal.homehelper_1.0.1_arm.ipk --target org.jellyfin.webos
 ```
 
 A choice made on the TV always wins over the packaged default (including
