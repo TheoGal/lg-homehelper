@@ -171,10 +171,18 @@
   // helper publishes the list over the TV's pairing connection and this page's
   // service hands it over. Right after Start that takes a few seconds, so keep
   // asking for up to 30 s.
-  var appsLoaded = false, listTries = 0, lastListError = '';
+  // The helper reads a fresh list each time this page opens, which takes a few
+  // seconds: the list saved last time is shown at once, and replaced when the
+  // fresh one (made after this page opened) arrives, so new apps show up.
+  var appsLoaded = false, listTries = 0, lastListError = '', openedAt = Date.now(), freshTries = 0;
   function loadApps() {
     call('luna://' + HELPER + '.settings.service/listApps', {}, function (r) {
-      if (r && r.returnValue && r.apps && r.apps.length) { listTries = 0; return done(r.apps); }
+      if (r && r.returnValue && r.apps && r.apps.length) {
+        listTries = 0;
+        if (!(typeof r.time === 'number' && r.time >= openedAt - 1000) && ++freshTries <= 10)
+          setTimeout(loadFresh, 2000);
+        return done(r.apps);
+      }
       lastListError = r ? (r.errorText || '') : 'no reply';
       if (++listTries < 15) {
         note('Finding your apps...');
@@ -193,6 +201,18 @@
       render();
       refreshTarget();
     }
+  }
+  function loadFresh() {
+    call('luna://' + HELPER + '.settings.service/listApps', {}, function (r) {
+      if (r && r.returnValue && r.apps && r.apps.length && typeof r.time === 'number' && r.time >= openedAt - 1000) {
+        var focused = apps[listIndex] && apps[listIndex].id;
+        addApps(r.apps);
+        for (var i = 0; i < apps.length; i++) if (apps[i].id === focused) listIndex = i;
+        render();
+        return;
+      }
+      if (++freshTries <= 10) setTimeout(loadFresh, 2000);
+    });
   }
 
   function render() {
