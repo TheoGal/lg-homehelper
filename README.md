@@ -96,8 +96,8 @@ on the remote steps back, and cancels learning.
 - Home Helper has to be running, and only the Magic Remote's buttons can be
   learned. Some buttons, such as Voice, may not reach Home Helper at all; if
   nothing happens when you press one, it can't be changed
-- Home, Back, OK, the arrows, the pointer, volume, channel, the number keys and
-  power can never be changed
+- Home, Back, OK, the arrows, the pointer, volume, channel, the number keys,
+  the four coloured buttons and power can never be changed
 - The emergency stop (Home three times quickly) also gives every button back
   its LG action until you start Home Helper again
 

@@ -13,6 +13,8 @@ int main(void){
  assert(key(&k,773,1)==KM_PASS);assert(key(&k,773,0)==KM_PASS);   /* Home is never learned */
  assert(key(&k,412,1)==KM_PASS);assert(key(&k,103,1)==KM_PASS);   /* Back, arrows */
  assert(key(&k,272,1)==KM_PASS);assert(key(&k,5,1)==KM_PASS);     /* pointer click, digit */
+ for(unsigned c=398;c<=401;c++)assert(key(&k,c,1)==KM_PASS);       /* coloured keys */
+ assert(key(&k,512,1)==KM_PASS);assert(key(&k,521,1)==KM_PASS);   /* keypad number codes */
  assert(key(&k,1100,1)==KM_LEARNED);assert(k.learning==0);
  assert(key(&k,1100,2)==KM_DROP);assert(key(&k,1100,0)==KM_DROP);
  assert(key(&k,1100,1)==KM_PASS);assert(key(&k,1100,0)==KM_PASS); /* learned, not mapped */
