@@ -39,7 +39,11 @@ function generationCurrent() {
   if (!startGeneration) return true;
   try {
     if (storage.stopGeneration(data) === startGeneration) return true;
-  } catch (e) {}
+  } catch (e) {
+    // webOS loosened the folder (see state-permissions): the record cannot be
+    // checked, which is not a Stop. A real Stop still arrives as control.json.
+    if (storage.loosenedByWebOS(data)) return true;
+  }
   // Preserve cancellation across automatic boot even if the Stop producer's
   // later legacy-latch write did not complete. Never consume its generation.
   try {

@@ -30,6 +30,20 @@ function expandedStopMode(stat) {
   var mode = stat.mode & 4095;
   return mode === 509 || mode === 511; // 0775 or 0777
 }
+// webOS loosens Developer Mode app folders (and the files in them) to 0777
+// when other apps are installed or removed. The state folder stays owned by
+// the packaged owner (5999:5000), so the helper cannot tighten it again.
+// In that state the strict Stop record cannot be checked, but that must never
+// read as a Stop: the plain stop request (control.json) and the "blocked"
+// marker still carry a real Stop.
+function loosenedByWebOS(directory) {
+  try {
+    var s = fs.lstatSync(directory);
+    return s.isDirectory() && (s.mode & 4095) === 511 && s.uid === 5999 && s.gid === 5000;
+  } catch (e) {
+    return false;
+  }
+}
 function field(name) {
   var names = {
     directory: 'directory',
@@ -955,7 +969,8 @@ prepare.requestStop = function (directory, options) {
     generation,
     expectedDirectory =
       (options && options.expectedDirectory) || fs.lstatSync(directory);
-  var publicationError;
+  var publicationError,
+    loosened = !forInstall && loosenedByWebOS(directory);
   try {
     generation = prepare.publishStopGeneration(directory, {
       legacyCleanup: legacyCleanup,
@@ -974,7 +989,7 @@ prepare.requestStop = function (directory, options) {
         role: 'app',
         operation: 'stop',
         output: ['control.json', 'stop-generation'],
-        legacy: legacyCleanup,
+        legacy: legacyCleanup || loosened,
         expectedDirectory: expectedDirectory,
         preserveStop: true
       },
@@ -1005,7 +1020,9 @@ prepare.requestStop = function (directory, options) {
   } catch (error) {
     throw publicationError || error;
   }
-  if (publicationError) throw publicationError;
+  // In a folder webOS loosened, the Stop record cannot be published, but the
+  // stop request and the blocked marker above were written: the Stop holds.
+  if (publicationError && !loosened) throw publicationError;
   return forInstall ? generation : result;
 };
 prepare.stopGeneration = function (directory, create) {
@@ -1206,6 +1223,15 @@ prepare.readConfiguration = function (directory, kind) {
 prepare.appendLog = function (directory, line) {
   if (typeof line !== 'string' || Buffer.byteLength(line, 'utf8') > 131071)
     fail('logger', 'bounded-file', { limit: 131071 }, 'logger', 'write');
+  // Our own log files loosened by webOS: tighten them back and keep them,
+  // rather than starting a new, empty log.
+  ['controller.log', 'controller.log.previous'].forEach(function (name) {
+    try {
+      var p = directory + '/' + name,
+        s = fs.lstatSync(p);
+      if (s.isFile() && (s.mode & 4095) === 511 && s.uid === process.getuid()) fs.chmodSync(p, 420);
+    } catch (ignore) {}
+  });
   return session(
     directory,
     {
@@ -1237,4 +1263,5 @@ prepare.appendLog = function (directory, line) {
     }
   );
 };
+prepare.loosenedByWebOS = loosenedByWebOS;
 module.exports = prepare;

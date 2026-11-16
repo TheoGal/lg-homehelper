@@ -25,7 +25,7 @@ static volatile sig_atomic_t stop;
 static int output_failed;
 static const char *setup_generation;
 static int generation_cancelled;
-static int generation_current(void){char current[34];return !setup_generation||(cytv_generation_read(current)&&!strcmp(current,setup_generation));}
+static int generation_current(void){char current[34];if(!setup_generation)return 1;if(cytv_generation_read(current))return !strcmp(current,setup_generation);return cytv_generation_loosened();}
 /* A stalled controller must never hold the evdev grab by blocking stdout.
  * Only change pipe/socket flags, never an inherited terminal's flags. */
 static int prepare_output(void){
