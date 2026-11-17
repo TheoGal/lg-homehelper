@@ -315,7 +315,23 @@
     e.preventDefault();
     render();
   });
-  document.addEventListener('webOSRelaunch', refreshTarget);
+  // Opening the settings app again usually brings this page back instead of
+  // loading it anew. That is a new visit: the helper reads a fresh list now,
+  // so wait for it as on first open (new and removed apps show up).
+  var lastVisit = Date.now();
+  function newVisit() {
+    var now = Date.now();
+    refreshTarget();
+    if (now - lastVisit < 1000) return; // relaunch and visibility arrive together
+    lastVisit = now;
+    openedAt = now;
+    freshTries = 0;
+    setTimeout(loadFresh, 2000);
+  }
+  document.addEventListener('webOSRelaunch', newVisit);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) newVisit();
+  });
 
   // Show the LG Home entry at once; the status check loads the app list when
   // the helper is paired, or explains what to do.
