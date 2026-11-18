@@ -1,5 +1,5 @@
 'use strict';
-// Home Helper Settings' own service. webOS 23 only lets a web app call services
+// Home Helper Settings' own service. webOS 26 only lets a web app call services
 // from its own package, so the settings page cannot ask the helper's service.
 // This one only reads what the helper publishes into its folder (see
 // app/shared.js); it changes nothing. The page changes things by launching the

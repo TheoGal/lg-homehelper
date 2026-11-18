@@ -201,7 +201,7 @@ def build_helper(work):
 def build_settings():
     files = read_tree('settings')
     version = json.loads(files['appinfo.json'])['version']
-    # The page may only call services from its own package (webOS 23), so the
+    # The page may only call services from its own package (seen on webOS 26), so the
     # read-only service it asks travels with it.
     service = compile_js(read_tree('settings-service'))
     if json.loads(service['package.json'])['version'] != version:
