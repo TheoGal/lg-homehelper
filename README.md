@@ -133,6 +133,14 @@ Developer Mode apps.
 - Don't run this together with Clean Your TV's Home Helper: both would react
   to the Home button.
 
+## Known issues
+
+- **The emergency stop leaves the Magic Remote's pointer unresponsive.** After
+  pressing Home three times quickly, Home Helper stops and the buttons work
+  as normal, but the pointer no longer appears. To get it back, restart the
+  TV, or take the remote's batteries out for a few seconds and put them back.
+  Stopping Home Helper from **Home Helper Settings** doesn't cause this.
+
 ## For launcher developers
 
 Your launcher can use Home Helper as its Home button on unrooted TVs. Users
