@@ -75,7 +75,7 @@ int main(void){
  /* Next start after a crash: clean-up of held keys leaves the pointer alone too. */
  memset(released,0,sizeof released);held[1500]=1;held[1198]=1;
  char*clean[]={"relay","--cleanup",NULL};
- if(release_keys(11)<0)return 1;
+ if(release_keys(-1,11)<0)return 1;
  assert(released[1500]==1&&released[1198]==0);
  (void)clean;
  puts("PASS: emergency stop and clean-up release buttons but not the pointer state");
