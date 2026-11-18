@@ -48,6 +48,12 @@ static int find_device(const char *wanted,int flags){for(int i=0;i<32;i++){char 
  * not buttons. Releasing them hides the pointer while the remote itself still
  * counts it as shown, so it never reports it again and the pointer stays dead
  * until the TV restarts (seen after the emergency stop, since Home shows it). */
+/* Leave webOS's view of the pointer (1198 shown, 1199 hidden) the same as the
+ * remote's before handing the remote back: the remote reports a change only
+ * once. The emergency stop ends the relay mid-batch, and pressing Home sends
+ * the pointer's "shown" together with Home, so that event can be left unsent;
+ * webOS then never shows the pointer again until the TV restarts. */
+static void sync_pointer(int in,int out){unsigned char a[256]={0},b[256]={0};if(ioctl(in,KEYSTATE(sizeof a),a)<0||ioctl(out,KEYSTATE(sizeof b),b)<0)return;static const int codes[]={1198,1199};for(int i=0;i<2;i++){int k=codes[i],on=!!(a[k/8]&(1<<(k%8)));if(on==!!(b[k/8]&(1<<(k%8))))continue;struct ev e[2]={{0,0,1,(uint16_t)k,on},{0,0,0,0,0}};if(write(out,e,sizeof e)!=sizeof e)return;}}
 static int release_keys(int out){unsigned char bits[256]={0};if(ioctl(out,KEYSTATE(sizeof bits),bits)<0)return -1;for(int k=1;k<2048;k++)if(k!=1198&&k!=1199&&bits[k/8]&(1<<(k%8))){struct ev e[2]={{0,0,1,k,0},{0,0,0,0,0}};if(write(out,e,sizeof e)!=sizeof e)return -1;}return 0;}
 static void latch_stop(int reason){if(!generation_cancelled&&reason!=20)(void)cytv_generation_publish();const char *latch=reason==20?"/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper/state/watchdog":"/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper/state/blocked";int flag=open(latch,O_WRONLY|O_CREAT|O_TRUNC,0644);if(flag>=0){write(flag,"stopped",7);close(flag);}}
 static int compatible(int in,int out){unsigned char a[256],b[256];int types[]={0,1,2,3};for(int i=0;i<4;i++){memset(a,0,sizeof a);memset(b,0,sizeof b);if(ioctl(in,BIT(types[i],sizeof a),a)<0||ioctl(out,BIT(types[i],sizeof b),b)<0||memcmp(a,b,sizeof a))return 0;}for(int axis=0;axis<2;axis++){int a[6],b[6];if(ioctl(in,_IOR('E',0x40+axis,int[6]),a)<0||ioctl(out,_IOR('E',0x40+axis,int[6]),b)<0||memcmp(a+1,b+1,5*sizeof(int)))return 0;}return 1;}
@@ -149,6 +155,7 @@ int a=filter_event(&f,e+i,ms());if(a==RELEASE){reason=27;stop=1;break;}if(!gener
  /* Attempt every cleanup step even if an earlier one fails. A failed release
   * must not masquerade as a watchdog exit eligible for automatic recovery. */
  int cleanup=0,release_error=0,ungrab_error=0;
+ sync_pointer(in,out);
  if(release_keys(out)<0){cleanup|=1;release_error=errno;}
  if(ioctl(in,GRAB,0)<0){cleanup|=2;ungrab_error=errno;}
  if(close(in)<0)cleanup|=4;
