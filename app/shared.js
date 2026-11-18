@@ -1,6 +1,6 @@
 'use strict';
 // Files the settings app needs, written into the settings package's service
-// folder. webOS 23 only lets the settings page call services from its own
+// folder. webOS 26 only lets the settings page call services from its own
 // package, and that service's sandbox only sees its own folder; the helper is
 // not sandboxed and writes there. Nothing secret goes here: the pairing key stays in the app's folder.
 var fs = require('fs');
