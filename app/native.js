@@ -435,6 +435,51 @@ function publishApps() {
   );
 }
 publishStatus(true);
+
+// Remote buttons (buttons.js). The list and learning requests come from the
+// settings app, so they are only looked at while it is in front (and once when
+// the relay is ready); a learning window closes on its own after 20 s.
+var buttons = require('./buttons'),
+  buttonMap = {},
+  sentButtons = null,
+  learnHandled = 0,
+  learnUntil = 0;
+function syncButtons() {
+  if (!child || !ready || stopping) return;
+  buttonMap = buttons.read(shared.DIR);
+  var commands = buttons.relayCommands(buttonMap);
+  if (commands === sentButtons) return;
+  sentButtons = commands;
+  child.stdin.write(commands);
+  log({ event: 'buttons', mapped: Object.keys(buttonMap).length });
+}
+function checkLearn() {
+  var s = buttons.learnState(shared.DIR);
+  if (s && s.state === 'requested' && s.time > learnHandled) {
+    learnHandled = s.time;
+    if (!child || !ready || stopping) {
+      buttons.setLearn('unavailable', shared.DIR);
+      return;
+    }
+    child.stdin.write('L');
+    learnUntil = monotonic() + 20000;
+    buttons.setLearn('listening', shared.DIR);
+    log({ event: 'learn-start' });
+  } else if (s && s.state === 'cancelled' && learnUntil) endLearn(null);
+}
+function endLearn(state) {
+  if (!learnUntil) return;
+  learnUntil = 0;
+  if (child) child.stdin.write('l');
+  if (state) buttons.setLearn(state, shared.DIR);
+}
+function buttonPressed(code) {
+  var id = buttonMap[code];
+  log({ event: 'button', code: code, id: id || null });
+  if (!id || stopping || !ready) return;
+  launch(id);
+}
+
 function launch(id, done, params) {
   var request = ++launchSequence;
   diagnostic('launch-request', { launchSequence: request, id: id });
@@ -861,7 +906,17 @@ function start(recovering) {
           recovering = false;
         }
         worker.stdin.write(homeControl.enabled() ? 'E' : 'D');
+        sentButtons = null;
+        learnUntil = 0;
+        syncButtons();
       }
+      if (/^LEARN [0-9]{1,4}$/.test(line)) {
+        var learned = Number(line.slice(6));
+        learnUntil = 0;
+        buttons.setLearn('learned', shared.DIR, learned);
+        log({ event: 'learned', code: learned });
+      }
+      if (/^KEY [0-9]{1,4}$/.test(line)) buttonPressed(Number(line.slice(4)));
       if (line === 'HOME') {
         cancelIrHome();
         openHome(worker);
@@ -914,7 +969,12 @@ var timer = setInterval(function () {
   refreshWatchCatalog();
   homeControl.sync();
   publishStatus(true);
-  if (lastForeground === 'io.github.theogal.homehelper.settings') publishApps();
+  if (lastForeground === 'io.github.theogal.homehelper.settings') {
+    publishApps();
+    syncButtons();
+    checkLearn();
+  }
+  if (learnUntil && monotonic() > learnUntil) endLearn('timeout');
   try {
     var raw = fs.readFileSync(data + '/control.json', 'utf8');
     if (raw !== lastCommand) {
@@ -1116,7 +1176,10 @@ var screenWatch = require('./screen-watch')(
     diagnostic('foreground');
     // Leaving the settings app ends a visit: the next visit reads the list again
     // (at most every 15 s).
-    if (id !== 'io.github.theogal.homehelper.settings') appsVisitDone = false;
+    if (id !== 'io.github.theogal.homehelper.settings') {
+      appsVisitDone = false;
+      endLearn('cancelled'); // learning only while the settings app is in front
+    }
     else publishApps();
     var exited = screenPolicy.next(id, monotonic());
     if (

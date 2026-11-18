@@ -83,3 +83,23 @@ service.register('icon', function (message) {
     message.respond({ returnValue: true, data: 'data:image/' + type + ';base64,' + data.toString('base64') });
   });
 });
+
+// Remote buttons the helper keeps (app/buttons.js) and the learning state.
+service.register('buttons', function (message) {
+  var raw = readShared('buttons.json'),
+    list = [];
+  if (raw && typeof raw === 'object' && !Array.isArray(raw))
+    Object.keys(raw).forEach(function (k) {
+      if (/^[0-9]{1,4}$/.test(k) && validId(raw[k])) list.push({ code: Number(k), app: raw[k] });
+    });
+  var learn = readShared('learn.json');
+  message.respond({
+    returnValue: true,
+    buttons: list,
+    learn:
+      learn && typeof learn.state === 'string'
+        ? { state: learn.state, time: learn.time, code: typeof learn.code === 'number' ? learn.code : undefined }
+        : null,
+    running: running()
+  });
+});

@@ -8,6 +8,10 @@
   var LG_HOME = 'com.webos.app.home';
   var running = false; // unknown counts as stopped: starting is always safe
   var apps = [], current = null, targetLoaded = false, packagedTarget = null, zone = 'list', listIndex = 0, sideIndex = 0;
+  // The list shows one of: the Home button choice ('home'), the remote buttons
+  // ('buttons'), waiting for a button press ('learning'), or the app for one
+  // button ('assign').
+  var mode = 'home', buttonList = [], assignCode = null;
   var $ = function (id) { return document.getElementById(id); };
 
   function call(uri, params, cb) {
@@ -215,12 +219,53 @@
     });
   }
 
+  function iconOf(id) {
+    for (var i = 0; i < apps.length; i++) if (apps[i].id === id) return apps[i].icon;
+    return '';
+  }
+  function buttonName(code) { return 'Button ' + code; }
+  function mappedApp(code) {
+    for (var i = 0; i < buttonList.length; i++) if (buttonList[i].code === code) return buttonList[i].app;
+    return null;
+  }
+  // What the list shows in each mode: { title, note, icon, selected, pick }.
+  function rowsFor() {
+    if (mode === 'buttons') {
+      var out = [{ title: 'Learn a new button', note: 'press it on your remote', pick: startLearn }];
+      buttonList.forEach(function (b) {
+        out.push({ title: buttonName(b.code), note: 'opens ' + titleOf(b.app), icon: iconOf(b.app),
+          pick: function () { assign(b.code); } });
+      });
+      return out;
+    }
+    if (mode === 'learning') return [];
+    if (mode === 'assign') {
+      var mapped = mappedApp(assignCode), list = [];
+      if (mapped) list.push({ title: 'Forget this button', note: 'LG\'s own action again', pick: function () { saveButton(''); } });
+      apps.forEach(function (a) {
+        list.push({ title: a.title, note: a.id === LG_HOME ? LG_HOME : a.id, icon: a.icon, selected: a.id === mapped,
+          pick: function () { saveButton(a.id); } });
+      });
+      return list;
+    }
+    return apps.map(function (a) {
+      return { title: a.title, note: a.note || a.id, icon: a.icon, selected: a.id === current,
+        pick: function () { setTarget(a.id); } };
+    });
+  }
+
+  var shown = [];
   function render() {
     var rows = $('rows');
     rows.innerHTML = '';
-    apps.forEach(function (a, i) {
+    shown = rowsFor();
+    listIndex = Math.max(0, Math.min(listIndex, shown.length - 1));
+    $('listLabel').textContent = { home: 'Installed apps', buttons: 'Remote buttons',
+      learning: 'Remote buttons', assign: buttonName(assignCode) + ' opens' }[mode];
+    $('buttonsNav').textContent = mode === 'home' ? 'Remote buttons' : 'Back to the Home button';
+    shown.forEach(function (a, i) {
       var row = document.createElement('div');
-      row.className = 'app' + (a.id === current ? ' selected' : '') +
+      row.className = 'app' + (a.selected ? ' selected' : '') +
         (zone === 'list' && i === listIndex ? ' focus' : '');
       var pic = document.createElement('span');
       pic.className = 'pic';
@@ -237,9 +282,9 @@
       row.appendChild(name);
       var id = document.createElement('span');
       id.className = 'id';
-      id.textContent = a.note || a.id;
+      id.textContent = a.note || '';
       row.appendChild(id);
-      row.onclick = function () { listIndex = i; zone = 'list'; setTarget(a.id); };
+      row.onclick = function () { listIndex = i; zone = 'list'; a.pick(); };
       rows.appendChild(row);
     });
     // Show whole rows only: trim the list to a multiple of the row height.
@@ -253,7 +298,7 @@
       }
     }
     var visible = Math.floor(list.clientHeight / ROW);
-    var top = Math.max(0, Math.min(listIndex - Math.floor(visible / 2), apps.length - visible));
+    var top = Math.max(0, Math.min(listIndex - Math.floor(visible / 2), shown.length - visible));
     rows.style.top = (-top * ROW) + 'px';
     var side = sideItems();
     sideIndex = Math.min(sideIndex, side.length - 1);
@@ -261,6 +306,78 @@
       side[s].className = side[s].className.replace(/\s*focus/g, '') +
         (zone === 'side' && s === sideIndex ? ' focus' : '');
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+  }
+
+  // Remote buttons. The helper learns and keeps them; this page asks it by
+  // launching it with parameters and reads the result from its own service.
+  function loadButtons(cb) {
+    call('luna://' + HELPER + '.settings.service/buttons', {}, function (r) {
+      if (r && r.returnValue && r.buttons) buttonList = r.buttons;
+      if (cb) cb(r);
+      else render();
+    });
+  }
+  function setMode(next) {
+    mode = next;
+    listIndex = 0;
+    zone = 'list';
+    if (next !== 'learning') stopLearnPoll();
+    if (next === 'home') note(appsLoaded ? '' : $('listNote').textContent);
+    else if (next !== 'learning') note('');
+    render();
+  }
+  var learnPoll = null, learnStarted = 0;
+  function stopLearnPoll() { if (learnPoll) { clearInterval(learnPoll); learnPoll = null; } }
+  function startLearn() {
+    if (!running) { message('Start Home Helper first: it does the listening.'); return; }
+    message('');
+    setMode('learning');
+    note('Press the remote button you want to change. Back cancels.');
+    learnStarted = Date.now();
+    launch(HELPER, { nativeHomeLearn: true }, function (ok) {
+      if (!ok) { message('Could not reach Home Helper.'); setMode('buttons'); return; }
+      stopLearnPoll();
+      learnPoll = setInterval(checkLearn, 500);
+      setTimeout(function () { if (mode === 'learning') { message('No button press arrived.'); setMode('buttons'); } }, 25000);
+    });
+  }
+  function checkLearn() {
+    loadButtons(function (r) {
+      var l = r && r.learn;
+      if (mode !== 'learning' || !l || l.time < learnStarted - 2000) return;
+      if (l.state === 'learned' && typeof l.code === 'number') {
+        message('Button learned. Now choose the app it opens.');
+        assignCode = l.code;
+        setMode('assign');
+      } else if (l.state === 'timeout') {
+        message('No button press arrived. Some buttons, like Voice, cannot be learned.');
+        setMode('buttons');
+      } else if (l.state === 'unavailable') {
+        message('Home Helper is not running. Start it first.');
+        setMode('buttons');
+      }
+    });
+  }
+  function cancelLearn() {
+    launch(HELPER, { nativeHomeLearn: false });
+    message('');
+    setMode('buttons');
+  }
+  function assign(code) {
+    assignCode = code;
+    setMode('assign');
+    for (var i = 0; i < shown.length; i++) if (shown[i].selected) listIndex = i;
+    render();
+  }
+  function saveButton(id) {
+    message('Saving...');
+    launch(HELPER, { nativeHomeButton: { code: assignCode, app: id } }, function (ok) {
+      message(!ok ? 'Could not reach Home Helper.' : id ?
+        buttonName(assignCode) + ' now opens ' + titleOf(id) + '.' :
+        buttonName(assignCode) + ' does LG\'s own action again.');
+      setTimeout(function () { loadButtons(); }, 600);
+      setMode('buttons');
+    });
   }
 
   function activateSide() {
@@ -288,12 +405,20 @@
       });
     } else if (el.id === 'reset') {
       setTarget('');
+    } else if (el.id === 'buttonsNav') {
+      if (mode === 'home') { loadButtons(); setMode('buttons'); }
+      else { if (mode === 'learning') launch(HELPER, { nativeHomeLearn: false }); setMode('home'); }
+      zone = 'side';
     }
   }
 
   document.addEventListener('keydown', function (e) {
     var k = e.keyCode, sideCount = sideItems().length;
-    if (k === 461 || k === 27) { // Back
+    if (k === 461 || k === 27) { // Back: one step back, then close
+      e.preventDefault();
+      if (mode === 'learning') { cancelLearn(); return; }
+      if (mode === 'assign') { setMode('buttons'); return; }
+      if (mode === 'buttons') { setMode('home'); return; }
       if (window.webOSSystem && webOSSystem.platformBack) webOSSystem.platformBack();
       else if (window.PalmSystem && PalmSystem.platformBack) PalmSystem.platformBack();
       else window.close();
@@ -301,15 +426,15 @@
       return;
     }
     if (k === 37 && zone === 'list') zone = 'side';
-    else if (k === 39 && zone === 'side' && apps.length) zone = 'list';
+    else if (k === 39 && zone === 'side' && shown.length) zone = 'list';
     else if (k === 38) {
       if (zone === 'list') listIndex = Math.max(0, listIndex - 1);
       else sideIndex = Math.max(0, sideIndex - 1);
     } else if (k === 40) {
-      if (zone === 'list') listIndex = Math.min(apps.length - 1, listIndex + 1);
+      if (zone === 'list') listIndex = Math.min(shown.length - 1, listIndex + 1);
       else sideIndex = Math.min(sideCount - 1, sideIndex + 1);
     } else if (k === 13) {
-      if (zone === 'list' && apps[listIndex]) setTarget(apps[listIndex].id);
+      if (zone === 'list' && shown[listIndex]) shown[listIndex].pick();
       else if (zone === 'side') activateSide();
     } else return;
     e.preventDefault();
