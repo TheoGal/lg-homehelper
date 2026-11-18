@@ -10,7 +10,7 @@
   var apps = [], current = null, targetLoaded = false, packagedTarget = null, zone = 'list', listIndex = 0, sideIndex = 0;
   // The list shows one of: the Home button choice ('home'), the app buttons
   // ('buttons'), waiting for a button press ('learning'), or the app for one
-  // button ('assign').
+  // button ('assign'), or a name for one button ('rename').
   var mode = 'home', buttonList = [], assignCode = null;
   // Pointer: moving it selects what it points at (a list scrolling under a
   // pointer that stays still does not count), clicking acts on it; arrows and OK
@@ -233,7 +233,12 @@
     for (var i = 0; i < apps.length; i++) if (apps[i].id === id) return apps[i].icon;
     return '';
   }
-  function buttonName(code) { return 'Button ' + code; }
+  // A button is called by the name it was given, or else by the number it sends.
+  function buttonName(code) {
+    for (var i = 0; i < buttonList.length; i++)
+      if (buttonList[i].code === code && buttonList[i].name) return buttonList[i].name;
+    return 'Button ' + code;
+  }
   function mappedApp(code) {
     for (var i = 0; i < buttonList.length; i++) if (buttonList[i].code === code) return buttonList[i].app;
     return null;
@@ -243,15 +248,19 @@
     if (mode === 'buttons') {
       var out = [{ title: 'Learn a new button', note: 'press it on your remote', pick: startLearn }];
       buttonList.forEach(function (b) {
-        out.push({ title: buttonName(b.code), note: 'opens ' + titleOf(b.app), icon: iconOf(b.app),
+        out.push({ title: buttonName(b.code), note: (b.name ? 'Button ' + b.code + ', ' : '') + 'opens ' + titleOf(b.app),
+          icon: iconOf(b.app),
           pick: function () { assign(b.code); } });
       });
       return out;
     }
-    if (mode === 'learning') return [];
+    if (mode === 'learning' || mode === 'rename') return [];
     if (mode === 'assign') {
       var mapped = mappedApp(assignCode), list = [];
-      if (mapped) list.push({ title: 'Forget this button', note: 'LG\'s own action again', pick: function () { saveButton(''); } });
+      if (mapped) {
+        list.push({ title: 'Rename this button', note: 'so you know which one it is', pick: startRename });
+        list.push({ title: 'Forget this button', note: 'LG\'s own action again', pick: function () { saveButton(''); } });
+      }
       apps.forEach(function (a) {
         list.push({ title: a.title, note: a.id === LG_HOME ? LG_HOME : a.id, icon: a.icon, selected: a.id === mapped,
           pick: function () { saveButton(a.id); } });
@@ -271,7 +280,9 @@
     shown = rowsFor();
     listIndex = Math.max(0, Math.min(listIndex, shown.length - 1));
     $('listLabel').textContent = { home: 'Installed apps', buttons: 'App buttons',
-      learning: 'App buttons', assign: buttonName(assignCode) + ' opens' }[mode];
+      learning: 'App buttons', assign: buttonName(assignCode) + ' opens',
+      rename: 'Rename ' + buttonName(assignCode) }[mode];
+    $('renameBox').style.display = mode === 'rename' ? '' : 'none';
     $('buttonsNav').textContent = mode === 'home' ? 'App buttons' : 'Back to the Home button';
     shown.forEach(function (a, i) {
       var row = document.createElement('div');
@@ -305,15 +316,11 @@
       rows.appendChild(row);
     });
     // Show whole rows only: trim the list to a multiple of the row height.
+    // Measured every time: the note above the list changes its height.
     var list = $('list');
-    if (!list.getAttribute('data-fit')) {
-      var space = $('main').getBoundingClientRect().bottom - list.getBoundingClientRect().top;
-      if (space >= ROW) {
-        list.style.flex = 'none';
-        list.style.height = Math.floor(space / ROW) * ROW + 'px';
-        list.setAttribute('data-fit', '1');
-      }
-    }
+    var space = $('main').getBoundingClientRect().bottom - list.getBoundingClientRect().top;
+    list.style.flex = 'none';
+    list.style.height = Math.max(ROW, Math.floor(space / ROW) * ROW) + 'px';
     var visible = Math.max(1, Math.floor(list.clientHeight / ROW));
     var top = keepTop ? listTop : listIndex - Math.floor(visible / 2);
     if (listIndex < top) top = listIndex;
@@ -327,6 +334,7 @@
     for (var s = 0; s < side.length; s++)
       side[s].className = side[s].className.replace(/\s*focus/g, '') +
         (zone === 'side' && s === sideIndex ? ' focus' : '');
+    if (mode === 'rename') return; // the name field keeps the keyboard
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
@@ -402,6 +410,35 @@
     });
   }
 
+  // Renaming: the TV's own keyboard types into the name field. OK on it saves,
+  // Back cancels. An empty name gives the button back its number.
+  function startRename() {
+    message('');
+    var input = $('nameInput'), named = buttonName(assignCode);
+    setMode('rename');
+    note('Type a name, like the logo on the button. Then press OK.');
+    input.value = named === 'Button ' + assignCode ? '' : named;
+    input.placeholder = 'Button ' + assignCode;
+    setTimeout(function () { input.focus(); }, 50);
+  }
+  function saveName() {
+    var name = $('nameInput').value.replace(/^\s+|\s+$/g, '').slice(0, 40), code = assignCode;
+    $('nameInput').blur();
+    message('Saving...');
+    launch(HELPER, { nativeHomeButton: { code: code, name: name } }, function (ok) {
+      message(!ok ? 'Could not reach Home Helper.' : name ? 'Saved. This button is now called ' + name + '.' :
+        'Saved. This button is called Button ' + code + ' again.');
+      setTimeout(function () { loadButtons(); }, 600);
+    });
+    setMode('buttons');
+  }
+  function cancelRename() {
+    $('nameInput').blur();
+    setMode('assign');
+  }
+  $('nameSave').addEventListener('click', function (e) { e.preventDefault(); once(saveName); });
+  $('nameCancel').addEventListener('click', function (e) { e.preventDefault(); once(cancelRename); });
+
   function activateSide() {
     var el = sideItems()[sideIndex];
     if (el.id === 'power' && running) {
@@ -429,7 +466,11 @@
       setTarget('');
     } else if (el.id === 'buttonsNav') {
       if (mode === 'home') { loadButtons(); setMode('buttons'); }
-      else { if (mode === 'learning') launch(HELPER, { nativeHomeLearn: false }); setMode('home'); }
+      else {
+        if (mode === 'learning') launch(HELPER, { nativeHomeLearn: false });
+        if (mode === 'rename') $('nameInput').blur();
+        setMode('home');
+      }
       zone = 'side';
     }
   }
@@ -469,6 +510,11 @@
   }, { passive: false });
   document.addEventListener('keydown', function (e) {
     var k = e.keyCode, sideCount = sideItems().length;
+    if (mode === 'rename') { // keys type into the name field, except OK and Back
+      if (k === 13) { e.preventDefault(); if (!e.repeat) once(saveName); }
+      else if (k === 461 || k === 27) { e.preventDefault(); cancelRename(); }
+      return;
+    }
     if ([13, 27, 37, 38, 39, 40, 461].indexOf(k) >= 0) pointerMoved = false;
     if (k === 461 || k === 27) { // Back: one step back, then close
       e.preventDefault();

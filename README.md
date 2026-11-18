@@ -90,7 +90,9 @@ Remotes differ from model to model, so Home Helper learns your buttons:
 3. Pick the app that button should open
 
 Mapped buttons are listed under **App buttons**: choose one to give it a
-different app, or **Forget this button** to give it back its LG action. Back
+different app, **Rename this button** to call it something you'll recognise
+later (like the logo on it), or **Forget this button** to give it back its LG
+action. A button without a name shows the number it sends, like Button 1300. Back
 on the remote steps back, and cancels learning.
 
 - Home Helper has to be running, and only the Magic Remote's buttons can be

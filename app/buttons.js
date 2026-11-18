@@ -3,6 +3,7 @@
 // Both live next to the app list (app/shared.js) so the settings page's
 // service can read them:
 //   buttons.json  { "<code>": "<app id>", ... }
+//   button-names.json  { "<code>": "<name the user gave it>", ... }
 //   learn.json    { state: requested|listening|learned|cancelled|timeout,
 //                   time, code? }
 // The relay never learns or maps Home, Back, OK, arrows, pointer, volume,
@@ -26,6 +27,9 @@ function learnable(code) {
     BLOCKED.indexOf(code) < 0
   );
 }
+function validName(name) {
+  return typeof name === 'string' && name.length <= 40 && !/[\u0000-\u001f\u007f]/.test(name);
+}
 function validApp(id) {
   return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(id);
 }
@@ -47,16 +51,46 @@ function read(directory) {
   return out;
 }
 
-// app '' removes the button.
+// Names of mapped buttons only.
+function names(directory) {
+  var raw = shared.read('button-names.json', directory),
+    map = read(directory),
+    out = {};
+  if (raw && typeof raw === 'object' && !Array.isArray(raw))
+    Object.keys(map).forEach(function (k) {
+      var n = typeof raw[k] === 'string' ? raw[k].trim() : '';
+      if (n && validName(n)) out[k] = n;
+    });
+  return out;
+}
+
+// app '' removes the button, and its name with it.
 function set(code, app, directory) {
   if (!learnable(code) || (app !== '' && !validApp(app))) return false;
   var map = read(directory);
-  if (app === '') delete map[code];
-  else {
+  if (app === '') {
+    delete map[code];
+    var n = names(directory);
+    if (n[code] !== undefined) {
+      delete n[code];
+      shared.write('button-names.json', n, directory);
+    }
+  } else {
     if (!map[code] && Object.keys(map).length >= MAX) return false;
     map[code] = app;
   }
   return shared.write('buttons.json', map, directory);
+}
+
+// Only a mapped button can have a name; '' gives it back its number.
+function setName(code, name, directory) {
+  if (typeof name !== 'string') return false;
+  name = name.trim();
+  if (!learnable(code) || !validName(name) || !read(directory)[code]) return false;
+  var n = names(directory);
+  if (name) n[code] = name;
+  else delete n[code];
+  return shared.write('button-names.json', n, directory);
 }
 
 // What the relay needs: C clears, then M and four digits per mapped code.
@@ -86,6 +120,8 @@ module.exports = {
   learnable: learnable,
   read: read,
   set: set,
+  names: names,
+  setName: setName,
   relayCommands: relayCommands,
   learnState: learnState,
   setLearn: setLearn

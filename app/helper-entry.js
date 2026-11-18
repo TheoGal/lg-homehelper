@@ -51,11 +51,15 @@ if (typeof params.nativeHomeTarget === 'string')
   saved = saveTarget(params.nativeHomeTarget);
 // App buttons (see buttons.js). Learning: true asks the running controller to
 // catch the next button press, false cancels. A button: { code, app }, where
-// app "" forgets the button. The running controller picks both up.
+// app "" forgets the button, or { code, name } to rename it ("" gives it back
+// its number). The running controller picks these up.
 if (typeof params.nativeHomeLearn === 'boolean')
   saved = require('./buttons').setLearn(params.nativeHomeLearn ? 'requested' : 'cancelled');
 if (params.nativeHomeButton && typeof params.nativeHomeButton === 'object')
-  saved = require('./buttons').set(params.nativeHomeButton.code, params.nativeHomeButton.app);
+  saved =
+    typeof params.nativeHomeButton.name === 'string'
+      ? require('./buttons').setName(params.nativeHomeButton.code, params.nativeHomeButton.name)
+      : require('./buttons').set(params.nativeHomeButton.code, params.nativeHomeButton.app);
 var starting =
   params.nativeHomeAuto === true ||
   params.nativeHomeStart === true ||

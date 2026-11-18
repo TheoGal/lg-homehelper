@@ -87,10 +87,15 @@ service.register('icon', function (message) {
 // App buttons the helper keeps (app/buttons.js) and the learning state.
 service.register('buttons', function (message) {
   var raw = readShared('buttons.json'),
+    names = readShared('button-names.json') || {},
     list = [];
   if (raw && typeof raw === 'object' && !Array.isArray(raw))
     Object.keys(raw).forEach(function (k) {
-      if (/^[0-9]{1,4}$/.test(k) && validId(raw[k])) list.push({ code: Number(k), app: raw[k] });
+      if (!/^[0-9]{1,4}$/.test(k) || !validId(raw[k])) return;
+      var b = { code: Number(k), app: raw[k] },
+        n = typeof names[k] === 'string' ? names[k].trim() : '';
+      if (n && n.length <= 40 && !/[\u0000-\u001f\u007f]/.test(n)) b.name = n;
+      list.push(b);
     });
   var learn = readShared('learn.json');
   message.respond({

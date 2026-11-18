@@ -438,7 +438,7 @@ const buttons = require('../app/buttons');
 const SETTINGS_APP = 'io.github.theogal.homehelper.settings';
 const relayWrites = (c) => c.workers[0].writes.filter((w) => w !== 'P').join('');
 function clearButtons() {
-  for (const f of ['buttons.json', 'learn.json']) fs.rmSync(path.join(sharedDir, f), { force: true });
+  for (const f of ['buttons.json', 'learn.json', 'button-names.json']) fs.rmSync(path.join(sharedDir, f), { force: true });
 }
 
 test('learning a button: requested, listening, learned', () => {
@@ -477,6 +477,25 @@ test('a mapped button opens its app; the list reaches the relay', () => {
   assert(buttons.set(1300, '', sharedDir));         // forgotten
   c.advance(500);
   assert.match(relayWrites(c), /CM1300C$/, 'empty list sent again');
+});
+
+test('naming a button: only mapped ones, kept on remap, gone when forgotten', () => {
+  clearButtons();
+  assert(!buttons.setName(1300, 'Alexa', sharedDir), 'an unmapped button has no name');
+  assert(buttons.set(1300, 'netflix', sharedDir));
+  assert(buttons.setName(1300, '  Alexa  ', sharedDir));
+  assert.deepEqual(buttons.names(sharedDir), { 1300: 'Alexa' }, 'trimmed');
+  assert(!buttons.setName(1300, 'x'.repeat(41), sharedDir), 'too long');
+  assert(!buttons.setName(1300, 'a\nb', sharedDir), 'no control characters');
+  assert(!buttons.setName(773, 'Home', sharedDir), 'Home never');
+  assert(buttons.set(1300, 'tld.other', sharedDir));
+  assert.deepEqual(buttons.names(sharedDir), { 1300: 'Alexa' }, 'a new app keeps the name');
+  assert(buttons.setName(1300, '', sharedDir));
+  assert.deepEqual(buttons.names(sharedDir), {}, 'empty name: back to its number');
+  assert(buttons.setName(1300, 'Alexa', sharedDir));
+  assert(buttons.set(1300, '', sharedDir));
+  assert(buttons.set(1300, 'netflix', sharedDir));
+  assert.deepEqual(buttons.names(sharedDir), {}, 'forgetting drops the name');
 });
 
 test('learning stops when the settings app leaves the screen or after 20 s', () => {

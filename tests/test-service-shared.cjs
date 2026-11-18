@@ -111,8 +111,11 @@ const ask = (method) => new Promise((resolve) => methods[method]({ respond: (r) 
   const askWith = (method) => new Promise((resolve) => methods[method]({ payload: {}, respond: (r) => resolve(JSON.parse(JSON.stringify(r))) }));
   files.set('/service/state/buttons.json', JSON.stringify({ 1300: 'netflix', abc: 'x', 1400: '../bad' }));
   files.set('/service/state/learn.json', JSON.stringify({ state: 'learned', time: 5, code: 1300 }));
-  const r = await askWith('buttons');
+  let r = await askWith('buttons');
   assert.deepEqual(r.buttons, [{ code: 1300, app: 'netflix' }], 'only valid buttons');
+  files.set('/service/state/button-names.json', JSON.stringify({ 1300: 'Alexa', 1400: 'Bad' }));
+  r = await askWith('buttons');
+  assert.deepEqual(r.buttons, [{ code: 1300, app: 'netflix', name: 'Alexa' }], 'with its name');
   assert.deepEqual(r.learn, { state: 'learned', time: 5, code: 1300 });
   console.log('ok buttons method');
 })();
