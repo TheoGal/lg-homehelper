@@ -12,6 +12,16 @@
   // ('buttons'), waiting for a button press ('learning'), or the app for one
   // button ('assign').
   var mode = 'home', buttonList = [], assignCode = null;
+  // Pointer: moving it selects what it points at (a list scrolling under a
+  // pointer that stays still does not count), clicking acts on it; arrows and OK
+  // take over again. A click and an OK key that arrive together act once.
+  var pointerMoved = false, keepTop = false, listTop = 0, lastAct = 0;
+  function once(action) {
+    var now = Date.now();
+    if (now - lastAct < 400) return;
+    lastAct = now;
+    action();
+  }
   var $ = function (id) { return document.getElementById(id); };
 
   function call(uri, params, cb) {
@@ -284,7 +294,14 @@
       id.className = 'id';
       id.textContent = a.note || '';
       row.appendChild(id);
-      row.onclick = function () { listIndex = i; zone = 'list'; a.pick(); };
+      row.onclick = function () { once(function () { listIndex = i; zone = 'list'; render(); a.pick(); }); };
+      row.onmousemove = function () {
+        if (!pointerMoved || (zone === 'list' && listIndex === i)) return;
+        zone = 'list';
+        listIndex = i;
+        keepTop = true; // selecting with the pointer never scrolls the list under it
+        render();
+      };
       rows.appendChild(row);
     });
     // Show whole rows only: trim the list to a multiple of the row height.
@@ -297,8 +314,13 @@
         list.setAttribute('data-fit', '1');
       }
     }
-    var visible = Math.floor(list.clientHeight / ROW);
-    var top = Math.max(0, Math.min(listIndex - Math.floor(visible / 2), shown.length - visible));
+    var visible = Math.max(1, Math.floor(list.clientHeight / ROW));
+    var top = keepTop ? listTop : listIndex - Math.floor(visible / 2);
+    if (listIndex < top) top = listIndex;
+    if (listIndex > top + visible - 1) top = listIndex - visible + 1;
+    top = Math.max(0, Math.min(top, shown.length - visible));
+    keepTop = false;
+    listTop = top;
     rows.style.top = (-top * ROW) + 'px';
     var side = sideItems();
     sideIndex = Math.min(sideIndex, side.length - 1);
@@ -412,8 +434,42 @@
     }
   }
 
+  document.addEventListener('mousemove', function () { pointerMoved = true; }, true);
+  document.addEventListener('mousedown', function () { pointerMoved = true; }, true);
+  // The left-hand buttons follow the pointer and act on a click.
+  function bindSide(el) {
+    el.addEventListener('mousemove', function () {
+      var side = sideItems(), i = side.indexOf(el);
+      if (!pointerMoved || i < 0 || (zone === 'side' && sideIndex === i)) return;
+      zone = 'side';
+      sideIndex = i;
+      render();
+    });
+    el.addEventListener('click', function (e) {
+      e.preventDefault();
+      el.blur();
+      once(function () {
+        var i = sideItems().indexOf(el);
+        if (i < 0) return;
+        zone = 'side';
+        sideIndex = i;
+        render();
+        activateSide();
+      });
+    });
+  }
+  ['power', 'lghome', 'reset', 'buttonsNav'].forEach(function (id) { if ($(id)) bindSide($(id)); });
+  // The wheel scrolls the list.
+  document.addEventListener('wheel', function (e) {
+    if (!shown.length || !e.deltaY) return;
+    e.preventDefault();
+    zone = 'list';
+    listIndex = Math.max(0, Math.min(shown.length - 1, listIndex + (e.deltaY > 0 ? 1 : -1)));
+    render();
+  }, { passive: false });
   document.addEventListener('keydown', function (e) {
     var k = e.keyCode, sideCount = sideItems().length;
+    if ([13, 27, 37, 38, 39, 40, 461].indexOf(k) >= 0) pointerMoved = false;
     if (k === 461 || k === 27) { // Back: one step back, then close
       e.preventDefault();
       if (mode === 'learning') { cancelLearn(); return; }
@@ -434,8 +490,11 @@
       if (zone === 'list') listIndex = Math.min(shown.length - 1, listIndex + 1);
       else sideIndex = Math.min(sideCount - 1, sideIndex + 1);
     } else if (k === 13) {
-      if (zone === 'list' && shown[listIndex]) shown[listIndex].pick();
-      else if (zone === 'side') activateSide();
+      if (!e.repeat)
+        once(function () {
+          if (zone === 'list' && shown[listIndex]) shown[listIndex].pick();
+          else if (zone === 'side') activateSide();
+        });
     } else return;
     e.preventDefault();
     render();
