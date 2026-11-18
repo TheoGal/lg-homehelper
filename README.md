@@ -187,13 +187,6 @@ python3 scripts/build.py --retarget dist/io.github.theogal.homehelper_1.0.1_arm.
 A choice made on the TV always wins over the packaged default (including
 choosing LG Home). With neither, Home goes to LG Home.
 
-## Optional extra tiles: LG Settings, LG Quick Settings, LG Notifications, Live TV
-
-Tiles that open LG Settings, LG Quick Settings, LG Notifications and Live TV
-from any launcher now live in their own repository:
-[LG Shortcuts](https://github.com/TheoGal/lg-shortcuts). They work with or
-without Home Helper.
-
 ## Credits
 
 Home Helper was inspired by
