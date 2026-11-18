@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """Draw the tile icons for Home Helper and Home Helper Settings: solid yellow
-houses (the settings one with a gear cut out). The LG Shortcuts tiles live in
-their own repository, TheoGal/lg-shortcuts.
+houses (the settings one with a gear cut out).
 
   python3 scripts/make-icons.py
 
