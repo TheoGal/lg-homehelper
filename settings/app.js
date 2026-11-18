@@ -133,13 +133,30 @@
     });
   }
 
-  // Icons: links to the TV's own icon server (http://127.0.0.1:3000/...) or
-  // icon files, loaded the way Hearth loads them.
-  function iconAddress(path) {
-    if (typeof path !== 'string') return '';
-    if (/^http:\/\/127\.0\.0\.1:3000\//.test(path)) return path;
-    if (path.charAt(0) === '/') return 'file://' + encodeURI(path);
-    return '';
+  // Icons are kept by the helper (the page cannot load them from the TV's icon
+  // server) and handed over one at a time by this page's service.
+  var iconData = {}, iconWaiting = {}, iconQueue = [], iconBusy = false;
+  function loadIcon(name, img) {
+    if (iconData[name]) { img.src = iconData[name]; return; }
+    if (iconWaiting[name]) { iconWaiting[name].push(img); return; }
+    iconWaiting[name] = [img];
+    iconQueue.push(name);
+    nextIcon();
+  }
+  function nextIcon() {
+    if (iconBusy || !iconQueue.length) return;
+    var name = iconQueue.shift();
+    iconBusy = true;
+    call('luna://' + HELPER + '.settings.service/icon', { name: name }, function (r) {
+      iconBusy = false;
+      var imgs = iconWaiting[name] || [];
+      delete iconWaiting[name];
+      if (r && r.returnValue && typeof r.data === 'string' && r.data.indexOf('data:image/') === 0) {
+        iconData[name] = r.data;
+        for (var i = 0; i < imgs.length; i++) imgs[i].src = r.data;
+      }
+      nextIcon();
+    });
   }
   function addApps(list) {
     var seen = {};
@@ -147,7 +164,7 @@
     (list || []).forEach(function (a) {
       if (!a || typeof a.id !== 'string' || seen[a.id] || HIDDEN.indexOf(a.id) >= 0) return;
       seen[a.id] = true;
-      apps.push({ id: a.id, title: a.title || a.id, icon: iconAddress(a.icon) });
+      apps.push({ id: a.id, title: a.title || a.id, icon: typeof a.icon === 'string' ? a.icon : '' });
     });
     apps.sort(function (x, y) { return x.title.toLowerCase() < y.title.toLowerCase() ? -1 : 1; });
     // Always first: going back to LG's own Home.
@@ -158,10 +175,18 @@
   // helper publishes the list over the TV's pairing connection and this page's
   // service hands it over. Right after Start that takes a few seconds, so keep
   // asking for up to 30 s.
-  var appsLoaded = false, listTries = 0, lastListError = '';
+  // The helper reads a fresh list each time this page opens, which takes a few
+  // seconds: the list saved last time is shown at once, and replaced when the
+  // fresh one (made after this page opened) arrives, so new apps show up.
+  var appsLoaded = false, listTries = 0, lastListError = '', openedAt = Date.now(), freshTries = 0;
   function loadApps() {
     call('luna://' + HELPER + '.settings.service/listApps', {}, function (r) {
-      if (r && r.returnValue && r.apps && r.apps.length) { listTries = 0; return done(r.apps); }
+      if (r && r.returnValue && r.apps && r.apps.length) {
+        listTries = 0;
+        if (!(typeof r.time === 'number' && r.time >= openedAt - 1000) && ++freshTries <= 10)
+          setTimeout(loadFresh, 2000);
+        return done(r.apps);
+      }
       lastListError = r ? (r.errorText || '') : 'no reply';
       if (++listTries < 15) {
         note('Finding your apps...');
@@ -180,6 +205,18 @@
       render();
       refreshTarget();
     }
+  }
+  function loadFresh() {
+    call('luna://' + HELPER + '.settings.service/listApps', {}, function (r) {
+      if (r && r.returnValue && r.apps && r.apps.length && typeof r.time === 'number' && r.time >= openedAt - 1000) {
+        var focused = apps[listIndex] && apps[listIndex].id;
+        addApps(r.apps);
+        for (var i = 0; i < apps.length; i++) if (apps[i].id === focused) listIndex = i;
+        render();
+        return;
+      }
+      if (++freshTries <= 10) setTimeout(loadFresh, 2000);
+    });
   }
 
   function iconOf(id) {
@@ -235,8 +272,8 @@
       if (a.icon) {
         var img = document.createElement('img');
         img.onerror = function () { if (img.parentNode) pic.removeChild(img); };
-        img.src = a.icon;
         pic.appendChild(img);
+        loadIcon(a.icon, img);
       }
       row.appendChild(pic);
       var name = document.createElement('span');
@@ -403,7 +440,23 @@
     e.preventDefault();
     render();
   });
-  document.addEventListener('webOSRelaunch', refreshTarget);
+  // Opening the settings app again usually brings this page back instead of
+  // loading it anew. That is a new visit: the helper reads a fresh list now,
+  // so wait for it as on first open (new and removed apps show up).
+  var lastVisit = Date.now();
+  function newVisit() {
+    var now = Date.now();
+    refreshTarget();
+    if (now - lastVisit < 1000) return; // relaunch and visibility arrive together
+    lastVisit = now;
+    openedAt = now;
+    freshTries = 0;
+    setTimeout(loadFresh, 2000);
+  }
+  document.addEventListener('webOSRelaunch', newVisit);
+  document.addEventListener('visibilitychange', function () {
+    if (!document.hidden) newVisit();
+  });
 
   // Show the LG Home entry at once; the status check loads the app list when
   // the helper is paired, or explains what to do.

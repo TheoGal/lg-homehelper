@@ -23,8 +23,8 @@ You need a TV with **Developer Mode** on, and **BOTH** packages from the
 
 | Package | What it is |
 | --- | --- |
-| `io.github.theogal.homehelper_1.0.0_arm.ipk` | **Home Helper**: the background helper that catches the Home button |
-| `io.github.theogal.homehelper.settings_1.0.0_all.ipk` | **Home Helper Settings**: start the helper and pick the app |
+| `io.github.theogal.homehelper_1.0.1_arm.ipk` | **Home Helper**: the background helper that catches the Home button |
+| `io.github.theogal.homehelper.settings_1.0.1_all.ipk` | **Home Helper Settings**: start the helper and pick the app |
 
 **With webOS Dev Manager** (easiest): install
 [webOS Dev Manager](https://github.com/webosbrew/dev-manager-desktop) on your
@@ -33,8 +33,8 @@ computer, add your TV, then open its Apps page and install both .ipk files.
 **With the webOS CLI** (`ares-cli`):
 
 ```
-ares-install --device tv io.github.theogal.homehelper_1.0.0_arm.ipk
-ares-install --device tv io.github.theogal.homehelper.settings_1.0.0_all.ipk
+ares-install --device tv io.github.theogal.homehelper_1.0.1_arm.ipk
+ares-install --device tv io.github.theogal.homehelper.settings_1.0.1_all.ipk
 ```
 
 ### Two tiles, on purpose
@@ -143,6 +143,8 @@ Developer Mode apps.
 
 - If Developer Mode expires, the TV removes these apps; reinstall and repeat
   the setup.
+- After updating, restart the TV (or uninstall both apps and install them
+  again) so the new version's background parts are the ones running.
 - At power-on, Home Helper only replaces LG Home. If your TV is set to start
   with its last input or app, that is what you get. If it starts with LG Home,
   you may see it briefly before your app opens.
@@ -204,7 +206,7 @@ python3 scripts/build.py --target com.plexapp.plex
 To change the default in an already built package (no toolchain needed):
 
 ```
-python3 scripts/build.py --retarget dist/io.github.theogal.homehelper_1.0.0_arm.ipk --target org.jellyfin.webos
+python3 scripts/build.py --retarget dist/io.github.theogal.homehelper_1.0.1_arm.ipk --target org.jellyfin.webos
 ```
 
 A choice made on the TV always wins over the packaged default (including
@@ -219,10 +221,10 @@ Home Helper.
 
 | Package | Tile | Opens |
 | --- | --- | --- |
-| `io.github.theogal.lgsettings_1.0.0_arm.ipk` | **LG Settings** (solid gear) | LG's settings, the same as the gear in LG Home |
-| `io.github.theogal.lgquicksettings_1.0.0_arm.ipk` | **LG Quick Settings** (outlined gear) | LG's Quick Settings panel, the same as a short press of the remote's settings button |
-| `io.github.theogal.lgnotifications_1.0.0_arm.ipk` | **LG Notifications** (bell) | LG's notifications |
-| `io.github.theogal.lglivetv_1.0.0_arm.ipk` | **Live TV** (TV) | The TV tuner (Live TV source) |
+| `io.github.theogal.lgsettings_1.0.1_arm.ipk` | **LG Settings** (solid gear) | LG's settings, the same as the gear in LG Home |
+| `io.github.theogal.lgquicksettings_1.0.1_arm.ipk` | **LG Quick Settings** (outlined gear) | LG's Quick Settings panel, the same as a short press of the remote's settings button |
+| `io.github.theogal.lgnotifications_1.0.1_arm.ipk` | **LG Notifications** (bell) | LG's notifications |
+| `io.github.theogal.lglivetv_1.0.1_arm.ipk` | **Live TV** (TV) | The TV tuner (Live TV source) |
 
 Install them the same way as Home Helper, then add the tiles to your launcher
 like any other app. Remove them from LG's app menu. A tile has no window of its own: it asks webOS to open the

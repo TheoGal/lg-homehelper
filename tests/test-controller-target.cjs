@@ -145,6 +145,13 @@ function controller({
         };
         return storage;
       }
+      if (n === './icon-cache')
+        // Icon downloads have their own test; here every listed icon is "kept".
+        return (dir, apps, done) => {
+          const names = {};
+          apps.forEach((a) => { if (typeof a.iconUrl === 'string') names[a.id] = 'icon-' + a.id; });
+          done(names);
+        };
       if (n === './shared') {
         const real = require(path.join(source, 'shared.js'));
         return {
@@ -329,7 +336,7 @@ test('publishes status and app list for the settings app', async () => {
   let reads = 0;
   const c = controller({
     inputQuery: () => (reads++, Promise.resolve([
-      { id: 'tld.my.customlauncher', title: 'Hearth', iconUrl: 'http://127.0.0.1:3000/resources/ab/icon.png' },
+      { id: 'tld.my.customlauncher', title: 'Hearth', iconUrl: 'http://192.168.1.5:3000/resources/ab/icon.png' },
       { id: 'netflix', title: 'Netflix', icon: '/ignored/raw/field.png' },
       { id: 'odd', title: 'Odd', iconUrl: 42 }
     ]))
@@ -352,11 +359,11 @@ test('publishes status and app list for the settings app', async () => {
   assert.deepEqual(
     sharedFile('app-list.json').apps,
     [
-      { id: 'tld.my.customlauncher', title: 'Hearth', icon: 'http://127.0.0.1:3000/resources/ab/icon.png' },
+      { id: 'tld.my.customlauncher', title: 'Hearth', icon: 'icon-tld.my.customlauncher' },
       { id: 'netflix', title: 'Netflix' },
       { id: 'odd', title: 'Odd' }
     ],
-    'app list published, with checked icon links only'
+    'app list published, naming the kept icon files'
   );
   c.advance(60000);
   await new Promise((r) => setImmediate(r));

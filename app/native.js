@@ -39,7 +39,11 @@ function generationCurrent() {
   if (!startGeneration) return true;
   try {
     if (storage.stopGeneration(data) === startGeneration) return true;
-  } catch (e) {}
+  } catch (e) {
+    // webOS loosened the folder (see state-permissions): the record cannot be
+    // checked, which is not a Stop. A real Stop still arrives as control.json.
+    if (storage.loosenedByWebOS(data)) return true;
+  }
   // Preserve cancellation across automatic boot even if the Stop producer's
   // later legacy-latch write did not complete. Never consume its generation.
   try {
@@ -395,6 +399,7 @@ function publishStatus(running) {
 }
 // The app list needs the pairing. It is only read while the settings app is in
 // front: once per visit, retried every 15 s if the TV did not answer.
+var iconCache = require('./icon-cache');
 var appsVisitDone = false;
 function publishApps() {
   var now = Date.now(),
@@ -411,16 +416,18 @@ function publishApps() {
       apps = apps.filter(function (a) {
         return a && typeof a.id === 'string';
       });
+      // Icons are kept as files next to the list; the list names them.
       appsVisitDone = true;
-      shared.write('app-list.json', {
-        time: Date.now(),
-        apps: apps.map(function (a) {
-          var entry = { id: a.id, title: typeof a.title === 'string' && a.title ? a.title : a.id };
-          // Checked by app-inventory: a link to the TV's own icon server or an icon file.
-          if (typeof a.iconUrl === 'string') entry.icon = a.iconUrl;
-          return entry;
-        })
-      });
+      iconCache(shared.DIR, apps, function (icons) {
+        shared.write('app-list.json', {
+          time: Date.now(),
+          apps: apps.map(function (a) {
+            var entry = { id: a.id, title: typeof a.title === 'string' && a.title ? a.title : a.id };
+            if (icons[a.id]) entry.icon = icons[a.id];
+            return entry;
+          })
+        });
+      }, { log: log });
     },
     function () {
       appsPending = false; // lastAppsAt: tried again in 15 s while still in front

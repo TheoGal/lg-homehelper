@@ -66,6 +66,24 @@ service.register('listApps', function (message) {
     message.respond({ returnValue: true, apps: list.apps, time: list.time });
   else message.respond({ returnValue: false, errorText: 'App list not ready yet' });
 });
+
+// One kept icon (see app/icon-cache.js), as a picture the page can show.
+service.register('icon', function (message) {
+  var name = message.payload && message.payload.name;
+  if (typeof name !== 'string' || !/^icon-[0-9a-f]{40}$/.test(name))
+    return message.respond({ returnValue: false, errorText: 'Unknown icon' });
+  fs.readFile(SHARED + '/' + name, function (error, data) {
+    var type = '';
+    if (!error && data.length >= 12) {
+      if (data.slice(0, 8).toString('hex') === '89504e470d0a1a0a') type = 'png';
+      else if (data[0] === 255 && data[1] === 216) type = 'jpeg';
+      else if (data.slice(0, 4).toString() === 'RIFF' && data.slice(8, 12).toString() === 'WEBP') type = 'webp';
+    }
+    if (!type) return message.respond({ returnValue: false, errorText: 'Icon not available' });
+    message.respond({ returnValue: true, data: 'data:image/' + type + ';base64,' + data.toString('base64') });
+  });
+});
+
 // Remote buttons the helper keeps (app/buttons.js) and the learning state.
 service.register('buttons', function (message) {
   var raw = readShared('buttons.json'),

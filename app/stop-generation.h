@@ -54,6 +54,13 @@ static int cytv_generation_same_directory(int dir) {
  return fstat(dir,&a)==0&&lstat(CYTV_GENERATION_DIRECTORY,&b)==0&&S_ISDIR(b.st_mode)&&
   a.st_dev==b.st_dev&&a.st_ino==b.st_ino&&a.st_mode==b.st_mode&&a.st_uid==b.st_uid&&a.st_gid==b.st_gid;
 }
+/* webOS loosens Developer Mode app folders and their files to 0777 when other
+ * apps are installed or removed; the state folder stays owned by 5999:5000.
+ * The record cannot be checked then, which must not read as a Stop. */
+static int cytv_generation_loosened(void) {
+ struct stat s;
+ return lstat(CYTV_GENERATION_DIRECTORY,&s)==0&&S_ISDIR(s.st_mode)&&(s.st_mode&07777)==0777&&s.st_uid==5999&&s.st_gid==5000;
+}
 static int cytv_generation_read(char token[34]) {
  int dir=cytv_generation_directory();if(dir<0)return 0;
  struct stat before,after;int fd=-1,ok=0;

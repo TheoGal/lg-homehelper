@@ -93,6 +93,21 @@ const ask = (method) => new Promise((resolve) => methods[method]({ respond: (r) 
 })();
 
 (async () => {
+  const askWith = (method, payload) => new Promise((resolve) => methods[method]({ payload, respond: (r) => resolve(JSON.parse(JSON.stringify(r))) }));
+  const name = 'icon-' + 'a'.repeat(40);
+  const png = Buffer.concat([Buffer.from('89504e470d0a1a0a', 'hex'), Buffer.alloc(8, 1)]);
+  files.set('/service/state/' + name, png);
+  let r = await askWith('icon', { name });
+  assert.equal(r.data, 'data:image/png;base64,' + png.toString('base64'), 'kept icon handed over');
+  r = await askWith('icon', { name: '../../app-list.json' });
+  assert.equal(r.returnValue, false, 'only icon files');
+  files.set('/service/state/icon-' + 'b'.repeat(40), Buffer.from('<html>nope</html>'));
+  r = await askWith('icon', { name: 'icon-' + 'b'.repeat(40) });
+  assert.equal(r.returnValue, false, 'only pictures');
+  console.log('ok icon method');
+})();
+
+(async () => {
   const askWith = (method) => new Promise((resolve) => methods[method]({ payload: {}, respond: (r) => resolve(JSON.parse(JSON.stringify(r))) }));
   files.set('/service/state/buttons.json', JSON.stringify({ 1300: 'netflix', abc: 'x', 1400: '../bad' }));
   files.set('/service/state/learn.json', JSON.stringify({ state: 'learned', time: 5, code: 1300 }));

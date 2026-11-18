@@ -255,24 +255,24 @@ module.exports = function (options) {
   });
 };
 
-// The TV lists icons as addresses on its own web server (/resources/<hash>/<file>),
-// sometimes as full addresses on that server, and on some firmware as file paths.
-// The server answers on port 3000 only to the TV itself, so icons are passed on
-// as http://127.0.0.1:3000/resources/... links (as Hearth loads them), or as
-// file paths.
+// The TV lists icons as addresses on its own web server (/resources/<hash>/<file>,
+// reachable at port 3000), sometimes as full addresses on that server, and on
+// some firmware as file paths. Only those three forms are passed on.
 var ICON_KEYS = ['largeIcon', 'icon', 'mediumLargeIcon', 'extraLargeIcon'];
-var RESOURCE = /^\/resources\/[a-fA-F0-9]{16,128}\/[A-Za-z0-9][A-Za-z0-9_.-]*$/;
 function iconAddress(app, host) {
   for (var i = 0; i < ICON_KEYS.length; i++) {
     var uri = app && app[ICON_KEYS[i]];
     if (typeof uri !== 'string' || !uri || uri.length > 1024) continue;
-    var m = /^https?:\/\/([^/:@]+)(?::(\d+))?(\/.*)$/.exec(uri);
+    if (/^\/resources\/[a-fA-F0-9]{16,128}\/[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(uri))
+      return host ? 'http://' + host + ':3000' + uri : null;
+    var m = /^https?:\/\/([^/:@]+)(:(\d+))?\/[^\s]*$/.exec(uri);
     if (m) {
-      if ((m[1] === host || m[1] === '127.0.0.1') && RESOURCE.test(m[3])) return 'http://127.0.0.1:3000' + m[3];
+      if (m[1] === host && (!m[3] || ['80', '443', '3000', '3001'].indexOf(m[3]) >= 0))
+        return uri.replace(/^https:\/\/([^/]+):3001/, 'http://$1:3000');
       continue;
     }
-    if (RESOURCE.test(uri)) return 'http://127.0.0.1:3000' + uri;
-    if (/^\/(usr|media)\/[A-Za-z0-9_.\/-]+$/.test(uri) && uri.indexOf('..') < 0) return uri;
+    if (/^\/(usr|media)\/[A-Za-z0-9_.\/-]+$/.test(uri) && uri.indexOf('..') < 0)
+      return uri;
   }
   return null;
 }
