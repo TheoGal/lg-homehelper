@@ -479,7 +479,7 @@ test('a mapped button opens its app; the list reaches the relay', () => {
   assert.match(relayWrites(c), /CM1300C$/, 'empty list sent again');
 });
 
-test('naming a button: only mapped ones, kept on remap, gone when forgotten', () => {
+test('naming a button: only mapped ones, kept on remap and after forgetting', () => {
   clearButtons();
   assert(!buttons.setName(1300, 'Alexa', sharedDir), 'an unmapped button has no name');
   assert(buttons.set(1300, 'netflix', sharedDir));
@@ -494,8 +494,9 @@ test('naming a button: only mapped ones, kept on remap, gone when forgotten', ()
   assert.deepEqual(buttons.names(sharedDir), {}, 'empty name: back to its number');
   assert(buttons.setName(1300, 'Alexa', sharedDir));
   assert(buttons.set(1300, '', sharedDir));
+  assert.deepEqual(buttons.names(sharedDir), { 1300: 'Alexa' }, 'forgetting keeps the name');
   assert(buttons.set(1300, 'netflix', sharedDir));
-  assert.deepEqual(buttons.names(sharedDir), {}, 'forgetting drops the name');
+  assert.deepEqual(buttons.names(sharedDir), { 1300: 'Alexa' }, 'learned again: same name');
 });
 
 test('learning stops when the settings app leaves the screen or after 20 s', () => {

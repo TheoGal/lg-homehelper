@@ -11,7 +11,7 @@
   // The list shows one of: the Home button choice ('home'), the app buttons
   // ('buttons'), waiting for a button press ('learning'), or the app for one
   // button ('assign'), or a name for one button ('rename').
-  var mode = 'home', buttonList = [], assignCode = null;
+  var mode = 'home', buttonList = [], buttonNames = {}, assignCode = null;
   // Pointer: moving it selects what it points at (a list scrolling under a
   // pointer that stays still does not count), clicking acts on it; arrows and OK
   // take over again. A click and an OK key that arrive together act once.
@@ -234,7 +234,10 @@
     return '';
   }
   // A button is called by the name it was given, or else by the number it sends.
+  // Names are kept even for forgotten buttons, so learning one again brings
+  // its name back.
   function buttonName(code) {
+    if (typeof buttonNames[code] === 'string' && buttonNames[code]) return buttonNames[code];
     for (var i = 0; i < buttonList.length; i++)
       if (buttonList[i].code === code && buttonList[i].name) return buttonList[i].name;
     return 'Button ' + code;
@@ -342,7 +345,10 @@
   // launching it with parameters and reads the result from its own service.
   function loadButtons(cb) {
     call('luna://' + HELPER + '.settings.service/buttons', {}, function (r) {
-      if (r && r.returnValue && r.buttons) buttonList = r.buttons;
+      if (r && r.returnValue && r.buttons) {
+        buttonList = r.buttons;
+        buttonNames = r.names && typeof r.names === 'object' ? r.names : {};
+      }
       if (cb) cb(r);
       else render();
     });
@@ -426,6 +432,7 @@
     $('nameInput').blur();
     message('Saving...');
     launch(HELPER, { nativeHomeButton: { code: code, name: name } }, function (ok) {
+      if (ok) { if (name) buttonNames[code] = name; else delete buttonNames[code]; }
       message(!ok ? 'Could not reach Home Helper.' : name ? 'Saved. This button is now called ' + name + '.' :
         'Saved. This button is called Button ' + code + ' again.');
       setTimeout(function () { loadButtons(); }, 600);

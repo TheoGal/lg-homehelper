@@ -19,6 +19,9 @@ function readShared(name) {
     return null;
   }
 }
+function validName(n) {
+  return !!n && n.length <= 40 && !/[\u0000-\u001f\u007f]/.test(n);
+}
 function validId(id) {
   return typeof id === 'string' && /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(id);
 }
@@ -88,19 +91,27 @@ service.register('icon', function (message) {
 service.register('buttons', function (message) {
   var raw = readShared('buttons.json'),
     names = readShared('button-names.json') || {},
+    named = {},
     list = [];
   if (raw && typeof raw === 'object' && !Array.isArray(raw))
     Object.keys(raw).forEach(function (k) {
       if (!/^[0-9]{1,4}$/.test(k) || !validId(raw[k])) return;
       var b = { code: Number(k), app: raw[k] },
         n = typeof names[k] === 'string' ? names[k].trim() : '';
-      if (n && n.length <= 40 && !/[\u0000-\u001f\u007f]/.test(n)) b.name = n;
+      if (validName(n)) b.name = n;
       list.push(b);
+    });
+  // Every name, mapped or not: a button learned again keeps its name.
+  if (names && typeof names === 'object' && !Array.isArray(names))
+    Object.keys(names).forEach(function (k) {
+      var n = typeof names[k] === 'string' ? names[k].trim() : '';
+      if (/^[0-9]{1,4}$/.test(k) && validName(n)) named[k] = n;
     });
   var learn = readShared('learn.json');
   message.respond({
     returnValue: true,
     buttons: list,
+    names: named,
     learn:
       learn && typeof learn.state === 'string'
         ? { state: learn.state, time: learn.time, code: typeof learn.code === 'number' ? learn.code : undefined }

@@ -51,31 +51,32 @@ function read(directory) {
   return out;
 }
 
-// Names of mapped buttons only.
+// Names outlive the mapping: a forgotten button that is learned again comes
+// back with the name it was given.
+var MAX_NAMES = 64;
 function names(directory) {
   var raw = shared.read('button-names.json', directory),
-    map = read(directory),
-    out = {};
+    out = {},
+    count = 0;
   if (raw && typeof raw === 'object' && !Array.isArray(raw))
-    Object.keys(map).forEach(function (k) {
-      var n = typeof raw[k] === 'string' ? raw[k].trim() : '';
-      if (n && validName(n)) out[k] = n;
-    });
+    Object.keys(raw)
+      .sort()
+      .forEach(function (k) {
+        var n = typeof raw[k] === 'string' ? raw[k].trim() : '';
+        if (count < MAX_NAMES && /^[0-9]{1,4}$/.test(k) && learnable(Number(k)) && n && validName(n)) {
+          out[k] = n;
+          count++;
+        }
+      });
   return out;
 }
 
-// app '' removes the button, and its name with it.
+// app '' removes the button (its name is kept).
 function set(code, app, directory) {
   if (!learnable(code) || (app !== '' && !validApp(app))) return false;
   var map = read(directory);
-  if (app === '') {
-    delete map[code];
-    var n = names(directory);
-    if (n[code] !== undefined) {
-      delete n[code];
-      shared.write('button-names.json', n, directory);
-    }
-  } else {
+  if (app === '') delete map[code];
+  else {
     if (!map[code] && Object.keys(map).length >= MAX) return false;
     map[code] = app;
   }
@@ -88,8 +89,10 @@ function setName(code, name, directory) {
   name = name.trim();
   if (!learnable(code) || !validName(name) || !read(directory)[code]) return false;
   var n = names(directory);
-  if (name) n[code] = name;
-  else delete n[code];
+  if (name) {
+    if (n[code] === undefined && Object.keys(n).length >= MAX_NAMES) return false;
+    n[code] = name;
+  } else delete n[code];
   return shared.write('button-names.json', n, directory);
 }
 

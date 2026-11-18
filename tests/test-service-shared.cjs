@@ -116,6 +116,7 @@ const ask = (method) => new Promise((resolve) => methods[method]({ respond: (r) 
   files.set('/service/state/button-names.json', JSON.stringify({ 1300: 'Alexa', 1400: 'Bad' }));
   r = await askWith('buttons');
   assert.deepEqual(r.buttons, [{ code: 1300, app: 'netflix', name: 'Alexa' }], 'with its name');
+  assert.deepEqual(r.names, { 1300: 'Alexa', 1400: 'Bad' }, 'every name, mapped or not');
   assert.deepEqual(r.learn, { state: 'learned', time: 5, code: 1300 });
   console.log('ok buttons method');
 })();
