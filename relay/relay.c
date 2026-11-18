@@ -43,7 +43,12 @@ static int report(const char *format,...){
 static void stopped(int n){(void)n;stop=1;}
 static uint64_t ms(void){struct timespec t;clock_gettime(CLOCK_MONOTONIC,&t);return(uint64_t)t.tv_sec*1000+t.tv_nsec/1000000;}
 static int find_device(const char *wanted,int flags){for(int i=0;i<32;i++){char p[64],name[256]={0};snprintf(p,sizeof p,"/dev/input/event%d",i);int fd=open(p,flags|O_NONBLOCK|O_CLOEXEC);if(fd<0)continue;if(ioctl(fd,NAME(sizeof name),name)>=0&&!strcmp(name,wanted)){report("DEVICE %s %s\n",p,name);return fd;}close(fd);}return -1;}
-static int release_keys(int out){unsigned char bits[256]={0};if(ioctl(out,KEYSTATE(sizeof bits),bits)<0)return -1;for(int k=1;k<2048;k++)if(bits[k/8]&(1<<(k%8))){struct ev e[2]={{0,0,1,k,0},{0,0,0,0,0}};if(write(out,e,sizeof e)!=sizeof e)return -1;}return 0;}
+/* Release every key still held on the relayed stream, so webOS never sees a stuck
+ * button. Not 1198/1199: they are the Magic Remote's pointer shown/hidden state,
+ * not buttons. Releasing them hides the pointer while the remote itself still
+ * counts it as shown, so it never reports it again and the pointer stays dead
+ * until the TV restarts (seen after the emergency stop, since Home shows it). */
+static int release_keys(int out){unsigned char bits[256]={0};if(ioctl(out,KEYSTATE(sizeof bits),bits)<0)return -1;for(int k=1;k<2048;k++)if(k!=1198&&k!=1199&&bits[k/8]&(1<<(k%8))){struct ev e[2]={{0,0,1,k,0},{0,0,0,0,0}};if(write(out,e,sizeof e)!=sizeof e)return -1;}return 0;}
 static void latch_stop(int reason){if(!generation_cancelled&&reason!=20)(void)cytv_generation_publish();const char *latch=reason==20?"/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper/state/watchdog":"/media/developer/apps/usr/palm/applications/io.github.theogal.homehelper/state/blocked";int flag=open(latch,O_WRONLY|O_CREAT|O_TRUNC,0644);if(flag>=0){write(flag,"stopped",7);close(flag);}}
 static int compatible(int in,int out){unsigned char a[256],b[256];int types[]={0,1,2,3};for(int i=0;i<4;i++){memset(a,0,sizeof a);memset(b,0,sizeof b);if(ioctl(in,BIT(types[i],sizeof a),a)<0||ioctl(out,BIT(types[i],sizeof b),b)<0||memcmp(a,b,sizeof a))return 0;}for(int axis=0;axis<2;axis++){int a[6],b[6];if(ioctl(in,_IOR('E',0x40+axis,int[6]),a)<0||ioctl(out,_IOR('E',0x40+axis,int[6]),b)<0||memcmp(a+1,b+1,5*sizeof(int)))return 0;}return 1;}
 static int startup_in,startup_out;
