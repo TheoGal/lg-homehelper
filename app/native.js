@@ -436,7 +436,7 @@ function publishApps() {
 }
 publishStatus(true);
 
-// Remote buttons (buttons.js). The list and learning requests come from the
+// App buttons (buttons.js). The list and learning requests come from the
 // settings app, so they are only looked at while it is in front (and once when
 // the relay is ready); a learning window closes on its own after 20 s.
 var buttons = require('./buttons'),

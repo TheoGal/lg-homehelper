@@ -131,7 +131,7 @@ int main(int argc,char**argv){
   if(generation_cancelled||stop||output_failed)break;
  }
  if(p[0].revents&(POLLHUP|POLLERR)){reason=25;break;}
- if(p[0].revents&POLLIN){struct ev e[64];ssize_t n=read(in,e,sizeof e);if(n<0&&errno==EAGAIN)continue;if(n<=0||n%sizeof e[0]){reason=26;break;}for(int i=0;i<n/(int)sizeof e[0];i++){if(!generation_current()){reason=29;generation_cancelled=1;break;}/* Remote buttons: a learned or mapped press is reported and never reaches webOS. */
+ if(p[0].revents&POLLIN){struct ev e[64];ssize_t n=read(in,e,sizeof e);if(n<0&&errno==EAGAIN)continue;if(n<=0||n%sizeof e[0]){reason=26;break;}for(int i=0;i<n/(int)sizeof e[0];i++){if(!generation_current()){reason=29;generation_cancelled=1;break;}/* App buttons: a learned or mapped press is reported and never reaches webOS. */
 int k=keymap_event(&km,e+i);if(k==KM_LEARNED){if(report("LEARN %u\n",(unsigned)e[i].code)<0)break;continue;}if(k==KM_MAPPED){if(report("KEY %u\n",(unsigned)e[i].code)<0)break;continue;}if(k==KM_DROP)continue;
 /* Observe Back without consuming or changing its events. */
 if(e[i].type==1&&e[i].code==412){if(e[i].value==1)report("BACK_DOWN\n");if(e[i].value==0)report("BACK_UP\n");if(output_failed)break;}

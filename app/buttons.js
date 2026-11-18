@@ -1,5 +1,5 @@
 'use strict';
-// Remote buttons: which app each learned button opens, and the learning state.
+// App buttons: which app each learned button opens, and the learning state.
 // Both live next to the app list (app/shared.js) so the settings page's
 // service can read them:
 //   buttons.json  { "<code>": "<app id>", ... }

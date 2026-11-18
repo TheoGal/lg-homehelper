@@ -49,7 +49,7 @@ function hasKey() {
 var saved = null;
 if (typeof params.nativeHomeTarget === 'string')
   saved = saveTarget(params.nativeHomeTarget);
-// Remote buttons (see buttons.js). Learning: true asks the running controller to
+// App buttons (see buttons.js). Learning: true asks the running controller to
 // catch the next button press, false cancels. A button: { code, app }, where
 // app "" forgets the button. The running controller picks both up.
 if (typeof params.nativeHomeLearn === 'boolean')

@@ -433,7 +433,7 @@ test('wake into LG Home: the chosen app replaces it', () => {
   assert.equal(opened(c, 'tld.my.customlauncher'), before + 1, 'chosen app opened once');
 });
 
-// Remote buttons: learning a button in the settings app and opening its app.
+// App buttons: learning a button in the settings app and opening its app.
 const buttons = require('../app/buttons');
 const SETTINGS_APP = 'io.github.theogal.homehelper.settings';
 const relayWrites = (c) => c.workers[0].writes.filter((w) => w !== 'P').join('');

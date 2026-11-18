@@ -77,19 +77,19 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
 `{"nativeHomeTarget":"com.webos.app.home"}` goes back to LG Home;
 `{"nativeHomeTarget":""}` clears the TV choice (packaged default, else LG Home).
 
-## Remote buttons
+## App buttons
 
 Home Helper can also give other buttons on your Magic Remote a new job, for
 example make the Rakuten TV or Prime Video button open an app you choose.
 Remotes differ from model to model, so Home Helper learns your buttons:
 
-1. In **Home Helper Settings**, choose **Remote buttons**, then
+1. In **Home Helper Settings**, choose **App buttons**, then
    **Learn a new button**
 2. Press the button you want to change. Home Helper catches it (the original
    app doesn't open) and shows **Button learned**
 3. Pick the app that button should open
 
-Mapped buttons are listed under **Remote buttons**: choose one to give it a
+Mapped buttons are listed under **App buttons**: choose one to give it a
 different app, or **Forget this button** to give it back its LG action. Back
 on the remote steps back, and cancels learning.
 
@@ -189,7 +189,7 @@ launchHelper({ nativeHomeStart: true });
 | `nativeHomeTarget: ""` | Clears the TV choice (packaged default, else LG Home) |
 | `nativeHomeStart: true` | Starts the helper (also after a stop). The first time, the TV asks the user to allow it; if they don't, it doesn't start |
 | `nativeHomeStop: true` | Stops the helper; it stays off until started again |
-| `nativeHomeButton: { code: <number>, app: "<app id>" }` | A learned remote button opens that app (`app: ""` gives it back its LG action) |
+| `nativeHomeButton: { code: <number>, app: "<app id>" }` | A learned app button opens that app (`app: ""` gives it back its LG action) |
 
 When opened again by Home, your launcher receives a normal relaunch
 (`webOSRelaunch`) with no special parameters. The Home key itself does not

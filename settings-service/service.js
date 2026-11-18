@@ -84,7 +84,7 @@ service.register('icon', function (message) {
   });
 });
 
-// Remote buttons the helper keeps (app/buttons.js) and the learning state.
+// App buttons the helper keeps (app/buttons.js) and the learning state.
 service.register('buttons', function (message) {
   var raw = readShared('buttons.json'),
     list = [];

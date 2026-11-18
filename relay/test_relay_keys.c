@@ -1,4 +1,4 @@
-/* Remote buttons through the whole relay: a learned press and a mapped press
+/* App buttons through the whole relay: a learned press and a mapped press
  * are reported (LEARN/KEY) and never re-emitted to webOS; other keys still
  * are; Home keeps working; commands arrive one byte per read. */
 #define _GNU_SOURCE

@@ -8,7 +8,7 @@
   var LG_HOME = 'com.webos.app.home';
   var running = false; // unknown counts as stopped: starting is always safe
   var apps = [], current = null, targetLoaded = false, packagedTarget = null, zone = 'list', listIndex = 0, sideIndex = 0;
-  // The list shows one of: the Home button choice ('home'), the remote buttons
+  // The list shows one of: the Home button choice ('home'), the app buttons
   // ('buttons'), waiting for a button press ('learning'), or the app for one
   // button ('assign').
   var mode = 'home', buttonList = [], assignCode = null;
@@ -270,9 +270,9 @@
     rows.innerHTML = '';
     shown = rowsFor();
     listIndex = Math.max(0, Math.min(listIndex, shown.length - 1));
-    $('listLabel').textContent = { home: 'Installed apps', buttons: 'Remote buttons',
-      learning: 'Remote buttons', assign: buttonName(assignCode) + ' opens' }[mode];
-    $('buttonsNav').textContent = mode === 'home' ? 'Remote buttons' : 'Back to the Home button';
+    $('listLabel').textContent = { home: 'Installed apps', buttons: 'App buttons',
+      learning: 'App buttons', assign: buttonName(assignCode) + ' opens' }[mode];
+    $('buttonsNav').textContent = mode === 'home' ? 'App buttons' : 'Back to the Home button';
     shown.forEach(function (a, i) {
       var row = document.createElement('div');
       row.className = 'app' + (a.selected ? ' selected' : '') +
@@ -330,7 +330,7 @@
     if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
   }
 
-  // Remote buttons. The helper learns and keeps them; this page asks it by
+  // App buttons. The helper learns and keeps them; this page asks it by
   // launching it with parameters and reads the result from its own service.
   function loadButtons(cb) {
     call('luna://' + HELPER + '.settings.service/buttons', {}, function (r) {
@@ -354,7 +354,7 @@
     if (!running) { message('Start Home Helper first: it does the listening.'); return; }
     message('');
     setMode('learning');
-    note('Press the remote button you want to change. Back cancels.');
+    note('Press the app button you want to change. Back cancels.');
     learnStarted = Date.now();
     launch(HELPER, { nativeHomeLearn: true }, function (ok) {
       if (!ok) { message('Could not reach Home Helper.'); setMode('buttons'); return; }

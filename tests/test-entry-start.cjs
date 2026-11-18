@@ -61,7 +61,7 @@ assert.equal(r.pairStatus, null, 'Start with a saved key: no prompt');
 r = run(true, { nativeHomeAuto: true });
 assert.equal(r.started, true, 'boot with a saved key: started');
 
-// Remote buttons from the settings app: saved for the running controller, and
+// App buttons from the settings app: saved for the running controller, and
 // nothing is started.
 r = run(true, { nativeHomeLearn: true });
 assert.equal(r.learn.state, 'requested');
