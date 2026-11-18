@@ -155,28 +155,6 @@ def compile_native(work):
                                   'relay': ['relay/relay.c', 'relay/filter.c']}.items()}
 
 
-# Independent tile apps that open one of LG's own panels. The first app id
-# webOS accepts is used: the ids differ between webOS versions.
-SHORTCUTS = {
-    'lgsettings': ['com.palm.app.settings', 'com.webos.app.settings'],
-    'lgquicksettings': ['com.webos.app.quicksettings'],
-    'lgnotifications': ['com.webos.app.notificationcenter'],
-    'lglivetv': ['com.webos.app.livetv'],
-}
-
-
-def build_shortcut(work, folder, targets):
-    files = read_tree('shortcuts/' + folder)
-    info = json.loads(files['appinfo.json'])
-    app, version = info['id'], info['version']
-    define = '-DTARGETS=' + ','.join('"%s"' % t for t in targets)
-    files['launch'] = arm_cc(work, folder + '-launch', ['shortcuts/launch.c'], define)
-    out = {'usr/palm/applications/' + app + '/' + n: b for n, b in files.items()}
-    out['usr/palm/packages/' + app + '/packageinfo.json'] = json.dumps(
-        {'id': app, 'version': version, 'app': app}).encode()
-    return app, version, ipk(app, version, out, {'usr/palm/applications/' + app + '/launch'}, 'arm')
-
-
 def build_helper(work):
     app = read_tree('app', lambda n: n.endswith(('.js', '.json', '.png')) or n.startswith('vendor/'))
     service = read_tree('service')
@@ -243,11 +221,6 @@ def main():
     sout = args.output / f'{SETTINGS}_{sversion}_all.ipk'
     sout.write_bytes(settings)
     print('Settings:', sout)
-    for folder, targets in SHORTCUTS.items():
-        app, version, data = build_shortcut(work, folder, targets)
-        path = args.output / f'{app}_{version}_arm.ipk'
-        path.write_bytes(data)
-        print('Shortcut:', path)
 
 
 if __name__ == '__main__':

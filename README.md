@@ -120,7 +120,7 @@ on the remote steps back, and cancels learning.
    go to the app list, and switch it to edit mode (on webOS 23: highlight a
    tile and hold **OK**, or use the pencil/*Edit* option at the end of the
    list). Select **Home Helper**, choose *Delete*, then do the same for
-   **Home Helper Settings**. Remove any of the optional tiles the same way.
+   **Home Helper Settings**.
    Apps installed from a downloaded `.ipk` file don't show an uninstall option
    in webOS Dev Manager, so use LG's menu.
 
@@ -214,25 +214,10 @@ choosing LG Home). With neither, Home goes to LG Home.
 
 ## Optional extra tiles: LG Settings, LG Quick Settings, LG Notifications, Live TV
 
-These four are **optional** and separate from Home Helper. Use them only if
-your preferred launcher doesn't offer a way to open these LG apps itself.
-Each is its own package: install any, all or none. They work with or without
-Home Helper.
-
-| Package | Tile | Opens |
-| --- | --- | --- |
-| `io.github.theogal.lgsettings_1.0.1_arm.ipk` | **LG Settings** (solid gear) | LG's settings, the same as the gear in LG Home |
-| `io.github.theogal.lgquicksettings_1.0.1_arm.ipk` | **LG Quick Settings** (outlined gear) | LG's Quick Settings panel, the same as a short press of the remote's settings button |
-| `io.github.theogal.lgnotifications_1.0.1_arm.ipk` | **LG Notifications** (bell) | LG's notifications |
-| `io.github.theogal.lglivetv_1.0.1_arm.ipk` | **Live TV** (TV) | The TV tuner (Live TV source) |
-
-Install them the same way as Home Helper, then add the tiles to your launcher
-like any other app. Remove them from LG's app menu. A tile has no window of its own: it asks webOS to open the
-LG app and exits, so nothing keeps running. The app ids differ between webOS
-versions; LG Settings tries `com.palm.app.settings`, then
-`com.webos.app.settings`. LG Quick Settings opens `com.webos.app.quicksettings`,
-LG Notifications opens `com.webos.app.notificationcenter` and Live TV opens
-`com.webos.app.livetv`.
+Tiles that open LG Settings, LG Quick Settings, LG Notifications and Live TV
+from any launcher now live in their own repository:
+[LG Shortcuts](https://github.com/TheoGal/lg-shortcuts). They work with or
+without Home Helper.
 
 ## Credits
 
