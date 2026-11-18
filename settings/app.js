@@ -248,7 +248,7 @@
     if (mode === 'buttons') {
       var out = [{ title: 'Learn a new button', note: 'press it on your remote', pick: startLearn }];
       buttonList.forEach(function (b) {
-        out.push({ title: buttonName(b.code), note: (b.name ? 'Button ' + b.code + ', ' : '') + 'opens ' + titleOf(b.app),
+        out.push({ title: buttonName(b.code), note: 'opens ' + titleOf(b.app),
           icon: iconOf(b.app),
           pick: function () { assign(b.code); } });
       });
