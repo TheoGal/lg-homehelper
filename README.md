@@ -2,8 +2,7 @@
 
 <h1 align="center">Home Helper</h1>
 
-Makes the LG webOS remote's **Home** button open an app of your choice instead
-of LG Home, without rooting the TV (Developer Mode is enough). This was created primarily for owners of non-rooted LG TVs that wish to use a custom Home page - launcher and have their remote home button direct to the custom home page.
+Hoe Helper makes the LG webOS Magic Remote's **Home** and Streaming/app buttons open an app of your choice, without rooting the TV (Developer Mode is enough). This was created primarily for owners of non-rooted LG TVs that wish to use a custom Home page - launcher and have their remote home button direct to the custom home page. Reapping of the app buttons was added in v1.2.0
 
 Until you choose an app, Home keeps going to LG Home as normal. Choosing
 **LG Home** in the settings app switches the redirect off again.
@@ -79,9 +78,7 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
 
 ## App buttons
 
-Home Helper can also give other buttons on your Magic Remote a new job, for
-example make the Rakuten TV or Prime Video button open an app you choose.
-Remotes differ from model to model, so Home Helper learns your buttons:
+To remap app buttons to your desired apps you first have to ake Hoe Helper "learn" your buttons - this is done because Magic Remotes come with varied models and different app buttons
 
 1. In **Home Helper Settings**, choose **App buttons**, then
    **Learn a new button**
