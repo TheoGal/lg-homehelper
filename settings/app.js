@@ -10,7 +10,8 @@
   var apps = [], current = null, targetLoaded = false, packagedTarget = null, zone = 'list', listIndex = 0, sideIndex = 0;
   // The list shows one of: the Home button choice ('home'), the app buttons
   // ('buttons'), waiting for a button press ('learning'), or the app for one
-  // button ('assign'), or a name for one button ('rename').
+  // button ('assign'), what to do with a mapped button ('button'), or a name
+  // for one button ('rename').
   var mode = 'home', buttonList = [], buttonNames = {}, assignCode = null;
   // Pointer: moving it selects what it points at (a list scrolling under a
   // pointer that stays still does not count), clicking acts on it; arrows and OK
@@ -259,19 +260,23 @@
     if (mode === 'buttons') {
       var out = [{ title: 'Learn a new button', note: 'press it on your remote', pick: startLearn }];
       buttonList.forEach(function (b) {
-        out.push({ title: buttonName(b.code), note: 'opens ' + titleOf(b.app),
+        out.push({ code: b.code, title: buttonName(b.code), note: 'opens ' + titleOf(b.app),
           icon: iconOf(b.app),
-          pick: function () { assign(b.code); } });
+          pick: function () { openButton(b.code); } });
       });
       return out;
     }
     if (mode === 'learning' || mode === 'rename') return [];
+    if (mode === 'button') {
+      var app = mappedApp(assignCode);
+      return [
+        { title: 'Rename this button', note: 'so you know which one it is', pick: startRename },
+        { title: 'Remap this button', note: 'opens ' + titleOf(app), icon: iconOf(app), pick: function () { assign(assignCode); } },
+        { title: 'Forget this button', note: 'LG\'s own action again', pick: function () { saveButton(''); } }
+      ];
+    }
     if (mode === 'assign') {
       var mapped = mappedApp(assignCode), list = [];
-      if (mapped) {
-        list.push({ title: 'Rename this button', note: 'so you know which one it is', pick: startRename });
-        list.push({ title: 'Forget this button', note: 'LG\'s own action again', pick: function () { saveButton(''); } });
-      }
       apps.forEach(function (a) {
         list.push({ title: a.title, note: a.id === LG_HOME ? LG_HOME : a.id, icon: a.icon, selected: a.id === mapped,
           pick: function () { saveButton(a.id); } });
@@ -291,7 +296,7 @@
     shown = rowsFor();
     listIndex = Math.max(0, Math.min(listIndex, shown.length - 1));
     $('listLabel').textContent = { home: 'Installed apps', buttons: 'App buttons',
-      learning: 'App buttons', assign: buttonName(assignCode) + ' opens',
+      learning: 'App buttons', assign: buttonName(assignCode) + ' opens', button: buttonName(assignCode),
       rename: 'Rename ' + buttonName(assignCode) }[mode];
     $('renameBox').style.display = mode === 'rename' ? '' : 'none';
     $('buttonsNav').textContent = mode === 'home' ? 'App buttons' : 'Back to the Home button';
@@ -390,8 +395,13 @@
       var l = r && r.learn;
       if (mode !== 'learning' || !l || l.time < learnStarted - 2000) return;
       if (l.state === 'learned' && typeof l.code === 'number') {
-        message('Button learned. Now choose the app it opens.', true);
         assignCode = l.code;
+        if (mappedApp(l.code)) { // already set up: its actions, not a new mapping
+          message('This button is already set up.');
+          openButton(l.code);
+          return;
+        }
+        message('Button learned. Now choose the app it opens.', true);
         setMode('assign');
       } else if (l.state === 'timeout') {
         message('No button press arrived. Some buttons, like Voice, cannot be learned.');
@@ -406,6 +416,17 @@
     launch(HELPER, { nativeHomeLearn: false });
     message('');
     setMode('buttons');
+  }
+  // A mapped button: rename, remap or forget it.
+  function openButton(code) {
+    assignCode = code;
+    setMode('button');
+  }
+  // Back from choosing an app: a mapped button keeps its app.
+  function leaveAssign() {
+    message('');
+    if (mappedApp(assignCode)) { setMode('button'); listIndex = 1; render(); } // back on Remap
+    else setMode('buttons');
   }
   function assign(code) {
     assignCode = code;
@@ -449,7 +470,7 @@
   }
   function cancelRename() {
     $('nameInput').blur();
-    setMode('assign');
+    setMode('button');
   }
   $('nameSave').addEventListener('click', function (e) { e.preventDefault(); once(saveName); });
   $('nameCancel').addEventListener('click', function (e) { e.preventDefault(); once(cancelRename); });
@@ -484,7 +505,7 @@
       else {
         if (mode === 'learning') launch(HELPER, { nativeHomeLearn: false });
         if (mode === 'rename') $('nameInput').blur();
-        if (mode === 'assign') message('');
+        if (mode === 'assign' || mode === 'button') message('');
         setMode('home');
       }
       zone = 'side';
@@ -535,7 +556,15 @@
     if (k === 461 || k === 27) { // Back: one step back, then close
       e.preventDefault();
       if (mode === 'learning') { cancelLearn(); return; }
-      if (mode === 'assign') { message(''); setMode('buttons'); return; }
+      if (mode === 'assign') { leaveAssign(); return; }
+      if (mode === 'button') {
+        var code = assignCode;
+        message('');
+        setMode('buttons');
+        for (var i = 0; i < shown.length; i++) if (shown[i].code === code) listIndex = i;
+        render();
+        return;
+      }
       if (mode === 'buttons') { setMode('home'); return; }
       if (window.webOSSystem && webOSSystem.platformBack) webOSSystem.platformBack();
       else if (window.PalmSystem && PalmSystem.platformBack) PalmSystem.platformBack();
