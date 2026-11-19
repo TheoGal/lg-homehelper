@@ -60,6 +60,10 @@ if (params.nativeHomeButton && typeof params.nativeHomeButton === 'object')
     typeof params.nativeHomeButton.name === 'string'
       ? require('./buttons').setName(params.nativeHomeButton.code, params.nativeHomeButton.name)
       : require('./buttons').set(params.nativeHomeButton.code, params.nativeHomeButton.app);
+// "Open LG Home" in the settings app: mark it as a visit for the running
+// controller (so it doesn't send you back to the chosen app), then open it.
+var visiting = params.nativeHomeVisitLG === true;
+if (visiting) require('./shared').write('visit-lg.json', { time: Date.now() });
 var starting =
   params.nativeHomeAuto === true ||
   params.nativeHomeStart === true ||
@@ -111,6 +115,10 @@ if (params.nativeHomeStop === true) {
         process.exit(ok ? 0 : 1);
       }, ok ? 200 : 0);
     });
+} else if (visiting) {
+  launchApp(target.LG_HOME, null, function (ok) {
+    process.exit(ok ? 0 : 1);
+  });
 } else if (saved !== null) {
   process.exit(saved ? 0 : 1);
 } else {

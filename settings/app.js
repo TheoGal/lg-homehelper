@@ -494,8 +494,9 @@
         setTimeout(refreshTarget, 4000);
       });
     } else if (el.id === 'lghome') {
-      // A one-off visit: the Home button keeps opening the chosen app.
-      launch(LG_HOME, null, function (ok) {
+      // A one-off visit: the Home button keeps opening the chosen app. The
+      // helper opens it, so it knows not to send you back.
+      launch(HELPER, { nativeHomeVisitLG: true }, function (ok) {
         if (!ok) message('Could not open LG Home.');
       });
     } else if (el.id === 'reset') {

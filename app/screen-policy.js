@@ -55,10 +55,16 @@ module.exports = function (apps) {
         backConsumed = true;
         backUntil = 0;
       }
+      // The chosen app and Home Helper's own apps never count as "closed":
+      // leaving them for LG Home is on purpose. Checked now, not when the
+      // list was made, because the chosen app can change in between.
       var redirect =
         !intentionalHome &&
         id === 'com.webos.app.home' &&
         apps.indexOf(previous) !== -1 &&
+        previous !== target() &&
+        previous !== 'io.github.theogal.homehelper' &&
+        previous !== 'io.github.theogal.homehelper.settings' &&
         (gapSince === null || now - gapSince <= 2500);
       previous = id;
       gapSince = null;

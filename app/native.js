@@ -1132,6 +1132,7 @@ function refreshWatchCatalog() {
       var apps = Array.isArray(catalog) ? catalog : catalog && catalog.apps;
       if (!Array.isArray(apps) || stopping || stopRequested) return;
       watchedApps.length = 0;
+      watchTarget = target();
       apps.forEach(function (app) {
         if (
           app &&
@@ -1153,10 +1154,31 @@ function refreshWatchCatalog() {
     }
   );
 }
+// "Open LG Home" in the settings app: a visit, so nothing sends you back to
+// the chosen app for a while (like visitLG).
+function lgVisitRequested() {
+  var v = shared.read('visit-lg.json');
+  var age = v && typeof v.time === 'number' ? Date.now() - v.time : -1;
+  return age >= 0 && age <= 10000;
+}
+var watchTarget;
 var screenWatch = require('./screen-watch')(
   data,
   screenLog,
   function (id) {
+    // The list of apps to watch leaves out the chosen app: rebuild it when the
+    // chosen app has changed since.
+    if (watchTarget !== undefined && target() !== watchTarget) {
+      needsWatchCatalog = true;
+      nextWatchCatalog = 0;
+      refreshWatchCatalog();
+    }
+    if (id === 'com.webos.app.home' && lgVisitRequested()) {
+      shared.remove('visit-lg.json');
+      cancelResume();
+      suppressReturnUntil = monotonic() + 7000;
+      log({ event: 'lg-visit' });
+    }
     if (id === 'com.webos.app.home') {
       if (lgHomeSince === null) lgHomeSince = monotonic();
     } else {
