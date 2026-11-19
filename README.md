@@ -2,7 +2,7 @@
 
 <h1 align="center">Home Helper</h1>
 
-Hoe Helper makes the LG webOS Magic Remote's **Home** and Streaming/app buttons open an app of your choice, without rooting the TV (Developer Mode is enough). This was created primarily for owners of non-rooted LG TVs that wish to use a custom Home page - launcher and have their remote home button direct to the custom home page. Reapping of the app buttons was added in v1.2.0
+Home Helper makes the LG webOS Magic Remote's **Home** and Streaming/app buttons open an app of your choice, without rooting the TV (Developer Mode is enough). This was created primarily for owners of non-rooted LG TVs that wish to use a custom Home page - launcher and have their remote home button direct to the custom home page. Reapping of the app buttons was added in v1.2.0
 
 Until you choose an app, Home keeps going to LG Home as normal. Choosing
 **LG Home** in the settings app switches the redirect off again.
