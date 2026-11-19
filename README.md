@@ -89,6 +89,8 @@ Remotes differ from model to model, so Home Helper learns your buttons:
    app doesn't open) and shows **Button learned**
 3. Pick the app that button should open
 
+![Home Helper Settings showing learned App buttons](docs/settings-app-buttons.png)
+
 Mapped buttons are listed under **App buttons**. Choose one to see what you
 can do with it: **Rename this button** to call it something you'll recognise
 later (like the logo on it), **Remap this button** to choose a different app
