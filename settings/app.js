@@ -187,7 +187,7 @@
     });
     apps.sort(function (x, y) { return x.title.toLowerCase() < y.title.toLowerCase() ? -1 : 1; });
     // Always first: going back to LG's own Home.
-    apps.unshift({ id: LG_HOME, title: 'LG Home', note: 'no redirect' });
+    apps.unshift({ id: LG_HOME, title: 'LG Home', note: 'no redirect', glyph: 'home' });
   }
 
   // Sideloaded web apps cannot list the TV's apps themselves, so the running
@@ -238,6 +238,19 @@
     });
   }
 
+  // Built-in line icons (our own), for LG Home and the button actions.
+  var GLYPHS = {
+    home: 'M3 11.5 12 4l9 7.5M5.5 10v10h4.5v-6h4v6h4.5V10',
+    learn: 'M12 5v14M5 12h14',
+    rename: 'M3 12V3h9l9 9-9 9zM7.5 7.5h.01',
+    remap: 'M4 8h14l-3.5-3.5M20 16H6l3.5 3.5',
+    forget: 'M4 7h16M9.5 7V4h5v3M6.5 7l1 13h9l1-13M10 11v5M14 11v5'
+  };
+  function glyph(name) {
+    return 'data:image/svg+xml,' + encodeURIComponent(
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="-6 -6 36 36" fill="none" stroke="#efe6dc" ' +
+      'stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="' + GLYPHS[name] + '"/></svg>');
+  }
   function iconOf(id) {
     for (var i = 0; i < apps.length; i++) if (apps[i].id === id) return apps[i].icon;
     return '';
@@ -255,13 +268,13 @@
     for (var i = 0; i < buttonList.length; i++) if (buttonList[i].code === code) return buttonList[i].app;
     return null;
   }
-  // What the list shows in each mode: { title, note, icon, selected, pick }.
+  // What the list shows in each mode: { title, note, icon or glyph, selected, pick }.
   function rowsFor() {
     if (mode === 'buttons') {
-      var out = [{ title: 'Learn a new button', note: 'press it on your remote', pick: startLearn }];
+      var out = [{ title: 'Learn a new button', note: 'press it on your remote', glyph: 'learn', pick: startLearn }];
       buttonList.forEach(function (b) {
         out.push({ code: b.code, title: buttonName(b.code), note: 'opens ' + titleOf(b.app),
-          icon: iconOf(b.app),
+          icon: iconOf(b.app), glyph: b.app === LG_HOME ? 'home' : '',
           pick: function () { openButton(b.code); } });
       });
       return out;
@@ -270,21 +283,21 @@
     if (mode === 'button') {
       var app = mappedApp(assignCode);
       return [
-        { title: 'Rename this button', note: 'so you know which one it is', pick: startRename },
-        { title: 'Remap this button', note: 'opens ' + titleOf(app), icon: iconOf(app), pick: function () { assign(assignCode); } },
-        { title: 'Forget this button', note: 'LG\'s own action again', pick: function () { saveButton(''); } }
+        { title: 'Rename this button', note: 'so you know which one it is', glyph: 'rename', pick: startRename },
+        { title: 'Remap this button', note: 'now opens ' + titleOf(app), glyph: 'remap', pick: function () { assign(assignCode); } },
+        { title: 'Forget this button', note: 'LG\'s own action again', glyph: 'forget', pick: function () { saveButton(''); } }
       ];
     }
     if (mode === 'assign') {
       var mapped = mappedApp(assignCode), list = [];
       apps.forEach(function (a) {
-        list.push({ title: a.title, note: a.id === LG_HOME ? LG_HOME : a.id, icon: a.icon, selected: a.id === mapped,
+        list.push({ title: a.title, note: a.id === LG_HOME ? LG_HOME : a.id, icon: a.icon, glyph: a.glyph, selected: a.id === mapped,
           pick: function () { saveButton(a.id); } });
       });
       return list;
     }
     return apps.map(function (a) {
-      return { title: a.title, note: a.note || a.id, icon: a.icon, selected: a.id === current,
+      return { title: a.title, note: a.note || a.id, icon: a.icon, glyph: a.glyph, selected: a.id === current,
         pick: function () { setTarget(a.id); } };
     });
   }
@@ -306,7 +319,11 @@
         (zone === 'list' && i === listIndex ? ' focus' : '');
       var pic = document.createElement('span');
       pic.className = 'pic';
-      if (a.icon) {
+      if (a.glyph) {
+        var g = document.createElement('img');
+        g.src = glyph(a.glyph);
+        pic.appendChild(g);
+      } else if (a.icon) {
         var img = document.createElement('img');
         img.onerror = function () { if (img.parentNode) pic.removeChild(img); };
         pic.appendChild(img);
