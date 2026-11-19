@@ -56,7 +56,15 @@
       params ? { id: id, params: params } : { id: id },
       function (r) { if (cb) cb(!!(r && r.returnValue)); });
   }
-  function message(text) { $('msg').textContent = text || ''; }
+  // Results fade after a few seconds; progress ("Saving...") and instructions
+  // that still apply (keep) stay until the next message replaces them.
+  var msgTimer = null;
+  function message(text, keep) {
+    $('msg').textContent = text || '';
+    if (msgTimer) { clearTimeout(msgTimer); msgTimer = null; }
+    if (text && !keep && !/\.\.\.$/.test(text))
+      msgTimer = setTimeout(function () { msgTimer = null; $('msg').textContent = ''; }, 6000);
+  }
   function titleOf(id) {
     for (var i = 0; i < apps.length; i++) if (apps[i].id === id) return apps[i].title;
     return id;
@@ -382,7 +390,7 @@
       var l = r && r.learn;
       if (mode !== 'learning' || !l || l.time < learnStarted - 2000) return;
       if (l.state === 'learned' && typeof l.code === 'number') {
-        message('Button learned. Now choose the app it opens.');
+        message('Button learned. Now choose the app it opens.', true);
         assignCode = l.code;
         setMode('assign');
       } else if (l.state === 'timeout') {
@@ -476,6 +484,7 @@
       else {
         if (mode === 'learning') launch(HELPER, { nativeHomeLearn: false });
         if (mode === 'rename') $('nameInput').blur();
+        if (mode === 'assign') message('');
         setMode('home');
       }
       zone = 'side';
@@ -526,7 +535,7 @@
     if (k === 461 || k === 27) { // Back: one step back, then close
       e.preventDefault();
       if (mode === 'learning') { cancelLearn(); return; }
-      if (mode === 'assign') { setMode('buttons'); return; }
+      if (mode === 'assign') { message(''); setMode('buttons'); return; }
       if (mode === 'buttons') { setMode('home'); return; }
       if (window.webOSSystem && webOSSystem.platformBack) webOSSystem.platformBack();
       else if (window.PalmSystem && PalmSystem.platformBack) PalmSystem.platformBack();
