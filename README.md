@@ -56,8 +56,11 @@ Open **Home Helper Settings** on the TV:
 
 After that the helper starts by itself on every boot. 
 
-The first start needs the TV to be
-online.
+The TV needs to be connected to your home network (Wi-Fi or Ethernet, no
+internet needed): Home Helper pairs with the TV's own remote-control service
+over it. Without a network, the Home button and App buttons still work, but
+Home Helper can't bring you back to your app when another app closes, or
+refresh the app list.
 
 ![Home Helper Settings with Hearth chosen](docs/settings-app-chosen.png)
 
