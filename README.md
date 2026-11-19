@@ -2,17 +2,16 @@
 
 <h1 align="center">Home Helper</h1>
 
-Home Helper makes the LG webOS Magic Remote's **Home** and **Streaming/app buttons** open an app of your choice, without rooting the TV (Developer Mode is enough). This was created primarily for owners of non-rooted LG TVs that wish to use a custom Home page - launcher and have their remote home button direct to the custom home page. Reapping of the app buttons was added in v1.2.0
+Home Helper makes the LG webOS Magic Remote's **Home** and **Streaming/app buttons** open an app of your choice, without rooting the TV (Developer Mode is enough). This was created primarily for owners of non-rooted LG TVs that wish to use a custom Home page - launcher and have their remote home button direct to the custom home page. Remapping of the app buttons was added in v1.2.0
 
-Until you choose an app, Home keeps going to LG Home as normal. Choosing
-**LG Home** in the settings app switches the redirect off again.
+You can also leave home button to its default function and remap only the app buttons.
 
 Inspired by and based on the Home Helper from
 [Clean Your TV](https://github.com/Razdva122/clean-your-tv-lg-webos), which in
 turn builds on [webos-vibehack](https://github.com/OmkarK97/webos-vibehack).
 See [Credits](#credits).
 
-The app is vibe-coded and tested on a C3 with 43.91.26 firmware and [Hearth](https://github.com/rudra-avatar/Hearth)
+The app is vibe-coded and tested on a C3 with 43.91.26 firmware, webOS26 and [Hearth](https://github.com/rudra-avatar/Hearth)
 as a launcher. 
 
 ## Install
@@ -50,14 +49,14 @@ offer to remove apps installed from a loose .ipk file.)
 Open **Home Helper Settings** on the TV:
 
 1. Choose **Start Home Helper**. The first time, your TV asks you to allow
-   it: choose **Allow**. Home Helper needs this to list your apps and to bring
+   a device trying to connect: choose **Allow**. Home Helper needs this to list your apps and to bring
    you back to your app when another app closes
 2. Pick the app the Home button should open (right side, OK). The first
-   entry, **LG Home**, turns the redirect off again
+   entry, **LG Home** leaves Home button to its default function.
 
-After that the helper starts by itself on every boot. Home Helper only runs
-while your TV allows it: if you choose not to, it doesn't start, and choosing
-**Start Home Helper** again asks again. The first start needs the TV to be
+After that the helper starts by itself on every boot. 
+
+The first start needs the TV to be
 online.
 
 ![Home Helper Settings with Hearth chosen](docs/settings-app-chosen.png)
@@ -78,7 +77,7 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
 
 ## App buttons
 
-To remap app buttons to your desired apps you first have to ake Hoe Helper "learn" your buttons - this is done because Magic Remotes come with varied models and different app buttons
+To remap app buttons to your desired apps you first have to make Home Helper "learn" your buttons - this is done to adress the fact that Magic Remotes come with varied models and different app buttons on each
 
 1. In **Home Helper Settings**, choose **App buttons**, then
    **Learn a new button**
@@ -88,8 +87,7 @@ To remap app buttons to your desired apps you first have to ake Hoe Helper "lear
 
 ![Home Helper Settings showing learned App buttons](docs/settings-app-buttons.png)
 
-Mapped buttons are listed under **App buttons**. Choose one to see what you
-can do with it: **Rename this button** to call it something you'll recognise
+Mapped buttons are listed under **App buttons**. Choose one to see its options: **Rename this button** to call it something you'll recognise
 later (like the logo on it), **Remap this button** to choose a different app
 (Back keeps the current one), or **Forget this button** to give it back its LG
 action. A button without a name shows the number it sends, like Button 1300.
@@ -163,7 +161,7 @@ Developer Mode apps.
 
 ## Known issues
 
-- In some TVs **The emergency stop leaves the Magic Remote's pointer unresponsive.** After
+- In some TVs **the emergency stop leaves the Magic Remote's pointer unresponsive.** After
   pressing Home three times quickly, Home Helper stops and the buttons work
   as normal, but the pointer no longer appears. To get it back, restart the
   TV, or take the remote's batteries out for a few seconds and put them back.
