@@ -3,7 +3,7 @@
 
   python3 scripts/build.py                          # Home opens the settings app until you pick one on the TV
   python3 scripts/build.py --target com.plexapp.plex  # Home opens Plex by default
-  python3 scripts/build.py --retarget dist/io.github.theogal.homehelper_1.0.1_arm.ipk --target org.jellyfin.webos
+  python3 scripts/build.py --retarget dist/io.github.theogal.homehelper_1.2.0_arm.ipk --target org.jellyfin.webos
 
 A target set here is only a default: a choice made later in Home Helper
 Settings on the TV takes priority. Never contacts a TV.
