@@ -49,7 +49,9 @@ static int compatible(int in,int out){unsigned char a[256],b[256];int types[]={0
 static int startup_in,startup_out;
 static uint64_t startup_ack,powerDeadline;
 static void power_command(char command){
- if(command=='T')powerDeadline=ms()+15000;
+ /* Powering off: open until the TV is Active again ('R'). A remote that
+  * vanishes hours into standby is still a power-off, not a failure. */
+ if(command=='T')powerDeadline=UINT64_MAX;
  if(command=='R')powerDeadline=0;
 }
 static int startup_keys(void){

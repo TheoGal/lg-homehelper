@@ -62,7 +62,9 @@ module.exports = function () {
     }
     return {
       command: poweringOff ? 'T' : p.state === 'Active' ? 'R' : null,
-      deadline: poweringOff ? now + 15000 : 0,
+      // Open until the TV is Active again: the remote can vanish hours into
+      // standby, and that is still the power going off, not a failure.
+      deadline: poweringOff ? Number.MAX_SAFE_INTEGER : 0,
       settledActive: settledActive,
       resumed: resumed,
       cancelWakeWait: !settledActive,
