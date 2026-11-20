@@ -164,7 +164,7 @@ Developer Mode apps.
 
 ## Known issues
 
-- Sometimes, Home Helper doesnt start after a TV boot causing the mapped buttons to work as default. Fix is under works.
+- Sometimes, Home Helper doesnt start after a TV boot causing the mapped buttons to work as default, manual start of Home Helper is required. Fix is under works.
 - In some TVs **the emergency stop leaves the Magic Remote's pointer unresponsive.** After
   pressing Home three times quickly, Home Helper stops and the buttons work
   as normal, but the pointer no longer appears. To get it back, restart the
