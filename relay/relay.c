@@ -151,12 +151,14 @@ int a=filter_event(&f,e+i,ms());if(a==RELEASE){reason=27;stop=1;break;}if(!gener
  if(close(in)<0)cleanup|=4;
  if(close(out)<0)cleanup|=8;
  if(p[2].fd>=0)close(p[2].fd);
- /* Only a recent controller power transition plus vanished BOTH devices may
-  * bypass the persistent failure latch. Real I/O/close errors stay failures. */
+ /* A remote that is provably gone (both devices answer "no such device")
+  * has nothing left to release: that is the TV removing it (deep standby,
+  * power-off), whatever the power state, so it never sets the latch. Real
+  * I/O/close errors on a remote that is still there stay failures. */
  if(stop&&reason==25){latch_stop(0);reason=0;}
- if(!stop&&reason==25&&cleanup==3&&powerDeadline&&ms()<=powerDeadline&&
+ if(!stop&&reason==25&&cleanup==3&&
     (release_error==ENODEV||release_error==ENXIO)&&(ungrab_error==ENODEV||ungrab_error==ENXIO)){
   report("POWER_REMOVED %d %d\n",release_error,ungrab_error);reason=32;
- }else if(cleanup){if(reason==25)latch_stop(31);report("CLEANUP_FAILED %d CAUSE %d\n",cleanup,reason);reason=31;}
+ }else if(cleanup){if(reason==25)latch_stop(31);report("CLEANUP_FAILED %d CAUSE %d ERRNO %d %d\n",cleanup,reason,release_error,ungrab_error);reason=31;}
  if(report("EXIT %d\n",reason)<0&&reason!=31&&reason!=30){latch_stop(30);reason=30;}return reason;
 }

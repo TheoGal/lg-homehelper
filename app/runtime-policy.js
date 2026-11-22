@@ -27,8 +27,6 @@ exports.classifyExit = function (s) {
       code === 32 &&
       !signal &&
       reason === 32 &&
-      s.powerOffUntil &&
-      s.now <= s.powerOffUntil &&
       !s.watchdog
     ) {
       d.action = 'wait-power';

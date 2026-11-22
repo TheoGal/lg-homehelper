@@ -88,16 +88,54 @@ var pidPath = data + '/controller.pid';
 require('./state-permissions').atomicRecord(data, 'pid', String(process.pid));
 // Preserve bounded preceding evidence across controller restarts.
 var contractEvents = require('./contract-events').create();
+// Lines that can repeat every few seconds for hours (the TV refusing the
+// connection in standby). The first of each is written; repeats are counted
+// and written as one "repeated" line when something else happens, or every
+// 30 minutes, so they never push the events that matter out of the log.
+var NOISY = { 'screen-watch-disconnected': 1, 'app-watch-catalog-unavailable': 1, 'contract-snapshot': 1 };
+var quiet = {},
+  quietSince = 0;
+function writeLog(x) {
+  require('./state-permissions').appendLog(data, JSON.stringify(Object.assign({ time: Date.now() }, x)));
+}
+function flushQuiet() {
+  var counts = {},
+    any = false;
+  Object.keys(quiet).forEach(function (k) {
+    if (quiet[k] > 0) {
+      counts[k] = quiet[k];
+      any = true;
+    }
+  });
+  if (any) writeLog({ event: 'repeated', counts: counts });
+}
 function log(x) {
   try {
     if (x && x.contract) {
       contractEvents.record(x.contract);
       x = { event: 'contract-snapshot', contract: contractEvents.snapshot() };
     }
-    require('./state-permissions').appendLog(
-      data,
-      JSON.stringify(Object.assign({ time: Date.now() }, x))
-    );
+    if (x && NOISY[x.event]) {
+      var key = x.event + (x.code !== undefined ? ':' + x.code : '');
+      if (quiet[key] === undefined) {
+        if (!Object.keys(quiet).length) quietSince = Date.now();
+        quiet[key] = 0;
+        writeLog(x);
+      } else {
+        quiet[key]++;
+        if (Date.now() - quietSince >= 1800000) {
+          flushQuiet();
+          Object.keys(quiet).forEach(function (k) {
+            quiet[k] = 0;
+          });
+          quietSince = Date.now();
+        }
+      }
+      return;
+    }
+    flushQuiet();
+    quiet = {};
+    writeLog(x);
   } catch (e) {
     try {
       console.error('Helper telemetry unavailable');
@@ -153,6 +191,7 @@ var child,
   resumePendingUntil = 0;
 var restarts = [],
   restartTimer = null,
+  remoteTimer = null,
   cleaning = false,
   waitingForPower = false,
   stopRequested = false,
@@ -792,6 +831,7 @@ function workerClosed(worker, code, signal) {
     waitingForPower = true;
     invalidatePresentation(false);
     cancelResume();
+    watchForRemote();
     return;
   }
   if (decision.action === 'terminal') {
@@ -1162,6 +1202,44 @@ function lgVisitRequested() {
   return age >= 0 && age <= 10000;
 }
 var watchTarget;
+// The remote vanished (deep standby, power-off). Power events may not arrive:
+// in standby the TV drops the connection they come over. So also look for the
+// remote itself every 30 seconds, and start a fresh relay once it is back.
+function remotePresent() {
+  try {
+    return /N: Name="LGE M-RCU - Builtin \[0\]"/.test(fs.readFileSync('/proc/bus/input/devices', 'utf8'));
+  } catch (e) {
+    return null;
+  }
+}
+function watchForRemote() {
+  clearInterval(remoteTimer);
+  var unreadable = false;
+  remoteTimer = setInterval(function () {
+    if (!waitingForPower || stopping) {
+      clearInterval(remoteTimer);
+      remoteTimer = null;
+      return;
+    }
+    var present = remotePresent();
+    if (present === null && !unreadable) {
+      unreadable = true;
+      log({ event: 'remote-watch-unavailable' });
+    }
+    if (present !== true || restartTimer !== null) return;
+    log({ event: 'remote-back' });
+    restartTimer = setTimeout(function () {
+      restartTimer = null;
+      if (stopping || !waitingForPower) return;
+      if (liveStop(false)) {
+        finish(0);
+        return;
+      }
+      waitingForPower = false;
+      start(false);
+    }, 1500);
+  }, 30000);
+}
 var screenWatch = require('./screen-watch')(
   data,
   screenLog,
@@ -1255,7 +1333,7 @@ var screenWatch = require('./screen-watch')(
       // after fresh Active, with the existing settling delay and stop guards.
       restartTimer = setTimeout(function () {
         restartTimer = null;
-        if (stopping) return;
+        if (stopping || !waitingForPower) return;
         if (liveStop(false)) {
           finish(0);
           return;
