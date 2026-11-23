@@ -1204,7 +1204,7 @@ function lgVisitRequested() {
 var watchTarget;
 // The remote vanished (deep standby, power-off). Power events may not arrive:
 // in standby the TV drops the connection they come over. So also look for the
-// remote itself every 30 seconds, and start a fresh relay once it is back.
+// remote itself, and start a fresh relay once it is back.
 function remotePresent() {
   try {
     return /N: Name="LGE M-RCU - Builtin \[0\]"/.test(fs.readFileSync('/proc/bus/input/devices', 'utf8'));
@@ -1212,13 +1212,26 @@ function remotePresent() {
     return null;
   }
 }
-function watchForRemote() {
+var remoteWatcher = null;
+function stopRemoteWatch() {
   clearInterval(remoteTimer);
+  remoteTimer = null;
+  if (remoteWatcher) {
+    try {
+      remoteWatcher.close();
+    } catch (e) {}
+    remoteWatcher = null;
+  }
+}
+// Checked every 2 seconds (a tiny file read), and at once whenever something
+// changes in /dev/input, so the relay is back within a moment of the TV
+// turning on.
+function watchForRemote() {
+  stopRemoteWatch();
   var unreadable = false;
-  remoteTimer = setInterval(function () {
+  function check() {
     if (!waitingForPower || stopping) {
-      clearInterval(remoteTimer);
-      remoteTimer = null;
+      stopRemoteWatch();
       return;
     }
     var present = remotePresent();
@@ -1228,6 +1241,7 @@ function watchForRemote() {
     }
     if (present !== true || restartTimer !== null) return;
     log({ event: 'remote-back' });
+    stopRemoteWatch();
     restartTimer = setTimeout(function () {
       restartTimer = null;
       if (stopping || !waitingForPower) return;
@@ -1237,8 +1251,15 @@ function watchForRemote() {
       }
       waitingForPower = false;
       start(false);
-    }, 1500);
-  }, 30000);
+    }, 500);
+  }
+  remoteTimer = setInterval(check, 2000);
+  try {
+    remoteWatcher = fs.watch('/dev/input', function () {
+      setTimeout(check, 200);
+    });
+    remoteWatcher.on('error', function () {});
+  } catch (e) {}
 }
 var screenWatch = require('./screen-watch')(
   data,
