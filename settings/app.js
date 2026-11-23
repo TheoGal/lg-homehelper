@@ -515,9 +515,9 @@
         setTimeout(refreshTarget, 4000);
       });
     } else if (el.id === 'power') {
-      message('Starting...');
+      // No "Starting..." flash: the button and status change is the answer.
       launch(HELPER, { nativeHomeStart: true }, function (ok) {
-        message(ok ? '' : 'Could not start Home Helper.');
+        if (!ok) message('Could not start Home Helper.');
         if (ok) { watchPairing(); refreshTarget(); }
         setTimeout(refreshTarget, 1500);
         setTimeout(refreshTarget, 4000);
