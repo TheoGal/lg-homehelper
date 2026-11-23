@@ -403,8 +403,11 @@
     else if (next !== 'learning') note('');
     render();
   }
-  var learnPoll = null, learnStarted = 0;
-  function stopLearnPoll() { if (learnPoll) { clearInterval(learnPoll); learnPoll = null; } }
+  var learnPoll = null, learnStarted = 0, learnGiveUp = null;
+  function stopLearnPoll() {
+    if (learnPoll) { clearInterval(learnPoll); learnPoll = null; }
+    if (learnGiveUp) { clearTimeout(learnGiveUp); learnGiveUp = null; } // never a stale one later
+  }
   function startLearn() {
     if (!running) { message('Start Home Helper first: it does the listening.'); return; }
     clearInstruction();
@@ -415,7 +418,10 @@
       if (!ok) { message('Could not reach Home Helper.'); setMode('buttons'); return; }
       stopLearnPoll();
       learnPoll = setInterval(checkLearn, 500);
-      setTimeout(function () { if (mode === 'learning') { message('No button press arrived.'); setMode('buttons'); } }, 25000);
+      learnGiveUp = setTimeout(function () {
+        learnGiveUp = null;
+        if (mode === 'learning') { message('No button press arrived.'); setMode('buttons'); }
+      }, 25000);
     });
   }
   function checkLearn() {
