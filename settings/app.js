@@ -57,20 +57,15 @@
       params ? { id: id, params: params } : { id: id },
       function (r) { if (cb) cb(!!(r && r.returnValue)); });
   }
-  // Results fade once there has been time to read them from the sofa: 8
-  // seconds, plus 1 second per 10 characters past the first 60, up to 20.
-  // Progress ("Saving...") and instructions that still apply (keep) stay until
-  // the next message replaces them.
+  // Results fade after 5 seconds. Progress ("Saving...") and instructions that
+  // still apply (keep) stay until the next message replaces them.
   var msgTimer = null, msgKeep = false;
-  function readingTime(text) {
-    return Math.min(20000, 8000 + Math.max(0, text.length - 60) * 100);
-  }
   function message(text, keep) {
     $('msg').textContent = text || '';
     msgKeep = !!(text && keep);
     if (msgTimer) { clearTimeout(msgTimer); msgTimer = null; }
     if (text && !keep && !/\.\.\.$/.test(text))
-      msgTimer = setTimeout(function () { msgTimer = null; $('msg').textContent = ''; }, readingTime(text));
+      msgTimer = setTimeout(function () { msgTimer = null; $('msg').textContent = ''; }, 5000);
   }
   // Leaving a screen takes away its instruction, but never a result that is
   // still being read: that one fades on its own.
