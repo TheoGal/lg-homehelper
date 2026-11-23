@@ -57,14 +57,25 @@
       params ? { id: id, params: params } : { id: id },
       function (r) { if (cb) cb(!!(r && r.returnValue)); });
   }
-  // Results fade after a few seconds; progress ("Saving...") and instructions
-  // that still apply (keep) stay until the next message replaces them.
-  var msgTimer = null;
+  // Results fade once there has been time to read them from the sofa: 8
+  // seconds, plus 1 second per 10 characters past the first 60, up to 20.
+  // Progress ("Saving...") and instructions that still apply (keep) stay until
+  // the next message replaces them.
+  var msgTimer = null, msgKeep = false;
+  function readingTime(text) {
+    return Math.min(20000, 8000 + Math.max(0, text.length - 60) * 100);
+  }
   function message(text, keep) {
     $('msg').textContent = text || '';
+    msgKeep = !!(text && keep);
     if (msgTimer) { clearTimeout(msgTimer); msgTimer = null; }
     if (text && !keep && !/\.\.\.$/.test(text))
-      msgTimer = setTimeout(function () { msgTimer = null; $('msg').textContent = ''; }, 6000);
+      msgTimer = setTimeout(function () { msgTimer = null; $('msg').textContent = ''; }, readingTime(text));
+  }
+  // Leaving a screen takes away its instruction, but never a result that is
+  // still being read: that one fades on its own.
+  function clearInstruction() {
+    if (msgKeep) message('');
   }
   function titleOf(id) {
     for (var i = 0; i < apps.length; i++) if (apps[i].id === id) return apps[i].title;
@@ -396,7 +407,7 @@
   function stopLearnPoll() { if (learnPoll) { clearInterval(learnPoll); learnPoll = null; } }
   function startLearn() {
     if (!running) { message('Start Home Helper first: it does the listening.'); return; }
-    message('');
+    clearInstruction();
     setMode('learning');
     note('Press the app button you want to change. Back cancels.');
     learnStarted = Date.now();
@@ -431,7 +442,7 @@
   }
   function cancelLearn() {
     launch(HELPER, { nativeHomeLearn: false });
-    message('');
+    clearInstruction();
     setMode('buttons');
   }
   // A mapped button: rename, remap or forget it.
@@ -441,7 +452,7 @@
   }
   // Back from choosing an app: a mapped button keeps its app.
   function leaveAssign() {
-    message('');
+    clearInstruction();
     if (mappedApp(assignCode)) { setMode('button'); listIndex = 1; render(); } // back on Remap
     else setMode('buttons');
   }
@@ -465,7 +476,7 @@
   // Renaming: the TV's own keyboard types into the name field. OK on it saves,
   // Back cancels. An empty name gives the button back its number.
   function startRename() {
-    message('');
+    clearInstruction();
     var input = $('nameInput'), named = buttonName(assignCode);
     setMode('rename');
     note('Type a name, like the logo on the button. Then press OK.');
@@ -523,7 +534,7 @@
       else {
         if (mode === 'learning') launch(HELPER, { nativeHomeLearn: false });
         if (mode === 'rename') $('nameInput').blur();
-        if (mode === 'assign' || mode === 'button') message('');
+        if (mode === 'assign' || mode === 'button') clearInstruction();
         setMode('home');
       }
       zone = 'side';
@@ -577,7 +588,7 @@
       if (mode === 'assign') { leaveAssign(); return; }
       if (mode === 'button') {
         var code = assignCode;
-        message('');
+        clearInstruction();
         setMode('buttons');
         for (var i = 0; i < shown.length; i++) if (shown[i].code === code) listIndex = i;
         render();
