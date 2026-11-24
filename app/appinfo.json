@@ -1,6 +1,6 @@
 {
   "id": "io.github.theogal.homehelper",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "type": "native",
   "main": "detach",
   "title": "Home Helper",
