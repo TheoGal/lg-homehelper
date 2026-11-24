@@ -167,9 +167,7 @@ Developer Mode apps.
 - Without **Quick Start+**, every power-on is a full boot, and Home Helper starts about 30 to 45 seconds after the TV does: webOS only runs Developer Mode apps' startup tasks some time after booting. With **Quick Start+** on and power saving **auto power-off timer** off, Home Helper keeps running in standby and is ready instantly.
 - **With launchers that hide the pointer on their own, such as Hearth, the
   emergency stop can leave the Magic Remote's pointer unresponsive for a few
-  seconds.** The three Home presses reopen the launcher, which tells webOS to
-  hide the pointer, but the remote still thinks it's showing, so waving does
-  nothing. Leave the remote still for a few seconds and the pointer works
+  seconds.** Leave the remote still for a few seconds and the pointer works
   again. Other target apps, and stopping Home Helper from **Home Helper
   Settings**, don't cause this.
 
