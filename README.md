@@ -164,7 +164,7 @@ Developer Mode apps.
 
 ## Known issues
 
-- On a TV with clean boot, Home Home Helper starts about 30 to 45 seconds after the TV does: webOS only runs Developer Mode apps' startup tasks some time after booting. With **Quick Start+** on and power saving **auto power-off timer** off, Home Helper keeps running in standby and is ready instantly.
+- On a TV with clean boot, Home Helper starts about 30 to 45 seconds after the TV does: webOS only runs Developer Mode apps' startup tasks some time after booting. With **Quick Start+** on and power saving **auto power-off timer** off, Home Helper keeps running in standby and is ready instantly.
 - In some TVs **the emergency stop leaves the Magic Remote's pointer unresponsive.** After
   pressing Home three times quickly, Home Helper stops and the buttons work
   as normal, but the pointer no longer appears. To get it back, leave the remote still for a few seconds after which the pointer works correctly again 
