@@ -2,16 +2,16 @@
 
 <h1 align="center">Home Helper</h1>
 
-Home Helper makes the LG webOS Magic Remote's **Home** and **Streaming/app buttons** open an app of your choice, without rooting the TV (Developer Mode is enough). This was created primarily for owners of non-rooted LG TVs that wish to use a custom Home page - launcher and have their remote home button direct to the custom home page. Remapping of the app buttons was added in v1.2.0
+Home Helper makes the LG webOS Magic Remote's **Home** and **Streaming/app buttons** open an app of your choice, without rooting the TV (Developer Mode is enough). This was created primarily for owners of non-rooted LG TVs that wish to use a custom Home page - launcher and have their remote home button direct to the custom home page. Remapping of the app buttons was added in v1.2.0.
 
-You can also leave home button to its default function and remap only the app buttons.
+You can also leave the Home button to its default function and remap only the app buttons.
 
 Inspired by and based on the Home Helper from
 [Clean Your TV](https://github.com/Razdva122/clean-your-tv-lg-webos), which in
 turn builds on [webos-vibehack](https://github.com/OmkarK97/webos-vibehack).
 See [Credits](#credits).
 
-The app is vibe-coded and tested on a C3 with 43.91.26 firmware, webOS26 and [Hearth](https://github.com/rudra-avatar/Hearth)
+The app is vibe-coded and tested on a C3 with 43.91.26 firmware, webOS 26 and [Hearth](https://github.com/rudra-avatar/Hearth)
 as a launcher. 
 
 ## Install
@@ -80,7 +80,7 @@ ares-launch --device tv io.github.theogal.homehelper -p '{"nativeHomeStop":true}
 
 ## App buttons
 
-To remap app buttons to your desired apps you first have to make Home Helper "learn" your buttons - this is done to adress the fact that Magic Remotes come with varied models and different app buttons on each
+To remap app buttons to your desired apps you first have to make Home Helper "learn" your buttons - this is done to address the fact that Magic Remotes come with varied models and different app buttons on each.
 
 1. In **Home Helper Settings**, choose **App buttons**, then
    **Learn a new button**
@@ -122,7 +122,7 @@ on the remote steps back, and cancels learning.
    **Stop Home Helper**. Wait until the status reads *Home Helper is stopped*.
    This hands the Home button back to LG and removes the start-at-boot task.
 2. **Remove both apps from LG's app menu.** Press **Home** to open LG Home,
-   go to the app list, and switch it to edit mode (on webOS 23: highlight a
+   go to the app list, and switch it to edit mode (on recent webOS: highlight a
    tile and hold **OK**, or use the pencil/*Edit* option at the end of the
    list). Select **Home Helper**, choose *Delete*, then do the same for
    **Home Helper Settings**.
@@ -164,10 +164,10 @@ Developer Mode apps.
 
 ## Known issues
 
-- On a TV with clean boot, Home Helper starts about 30 to 45 seconds after the TV does: webOS only runs Developer Mode apps' startup tasks some time after booting. With **Quick Start+** on and power saving **auto power-off timer** off, Home Helper keeps running in standby and is ready instantly.
+- Without **Quick Start+**, every power-on is a full boot, and Home Helper starts about 30 to 45 seconds after the TV does: webOS only runs Developer Mode apps' startup tasks some time after booting. With **Quick Start+** on and power saving **auto power-off timer** off, Home Helper keeps running in standby and is ready instantly.
 - In some TVs **the emergency stop leaves the Magic Remote's pointer unresponsive.** After
   pressing Home three times quickly, Home Helper stops and the buttons work
-  as normal, but the pointer no longer appears. To get it back, leave the remote still for a few seconds after which the pointer works correctly again 
+  as normal, but the pointer no longer appears. To get it back, leave the remote still for a few seconds, after which the pointer works correctly again.
   Stopping Home Helper from **Home Helper Settings** doesn't cause this.
 
 ## For launcher developers
@@ -190,7 +190,7 @@ launchHelper({ nativeHomeStart: true });
 | Parameter | Effect |
 | --- | --- |
 | `nativeHomeTarget: "<app id>"` | Home opens that app |
-| `nativeHomeTarget: "com.webos.app.home"` | Home goes to LG Home (redirect off) |
+| `nativeHomeTarget: "com.webos.app.home"` | Home goes to LG Home (App buttons keep working) |
 | `nativeHomeTarget: ""` | Clears the TV choice (packaged default, else LG Home) |
 | `nativeHomeStart: true` | Starts the helper (also after a stop). The first time, the TV asks the user to allow it; if they don't, it doesn't start |
 | `nativeHomeStop: true` | Stops the helper; it stays off until started again |
