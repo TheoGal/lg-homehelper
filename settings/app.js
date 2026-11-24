@@ -277,7 +277,7 @@
   // What the list shows in each mode: { title, note, icon or glyph, selected, pick }.
   function rowsFor() {
     if (mode === 'buttons') {
-      var out = [{ title: 'Learn a new button', note: 'press it on your remote', glyph: 'learn', pick: startLearn }];
+      var out = [{ title: 'Learn a new button', note: 'press OK to start, then the button', glyph: 'learn', pick: startLearn }];
       buttonList.forEach(function (b) {
         out.push({ code: b.code, title: buttonName(b.code), note: 'opens ' + titleOf(b.app),
           icon: iconOf(b.app), glyph: b.app === LG_HOME ? 'home' : '',
