@@ -1055,10 +1055,13 @@ var timer = setInterval(function () {
     lgHomeSince !== null &&
     now - lgHomeSince >= 1500 &&
     now >= resumeSettleUntil &&
-    now - lastLaunchSettledAt >= 5000
+    now - lastLaunchSettledAt >= 3000
   ) {
     resumeRetries++;
     launching = true;
+    // The net runs 5 s from the moment your app is put up, so LG Home
+    // bouncing straight back over it is still caught.
+    resumeGuardUntil = now + 5000;
     log({ event: 'resume-retry', attempt: resumeRetries });
     launchHome('return', function (ok) {
       launching = false;
@@ -1330,8 +1333,8 @@ var screenWatch = require('./screen-watch')(
       !stopping &&
       !launching
     ) {
-      // Only a short net after an app closes: LG Home bouncing back over your
-      // app happens within moments; later, LG Home is your own choice.
+      // The same short net after an app closes: LG Home bouncing back over
+      // your app happens within moments; later, LG Home is your own choice.
       resumeGuardUntil = monotonic() + 5000;
       resumeRetries = 0;
       launching = true;
@@ -1401,7 +1404,9 @@ var screenWatch = require('./screen-watch')(
       // A wake: LG Home showing now is the TV's doing, not you leaving your app.
       lastRealForeground = null;
       resumePendingUntil = now + 10000;
-      resumeGuardUntil = now + 30000;
+      // The same short net everywhere: LG Home the TV puts up after waking
+      // shows within moments; later, LG Home is your own choice.
+      resumeGuardUntil = now + 5000;
       resumeSettleUntil = now + 3000;
       resumeRetries = 0;
       lgHomeSince = lastForeground === 'com.webos.app.home' ? now : null;

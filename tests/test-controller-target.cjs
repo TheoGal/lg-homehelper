@@ -453,6 +453,21 @@ test('wake: leaving the chosen app for LG Home is not undone', () => {
   assert.equal(opened(c, 'tld.my.customlauncher'), first, 'stays in LG Home');
 });
 
+test('wake: the safety net lasts only a few seconds', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  const c = controller();
+  c.advance(60000);
+  c.foreground('com.webos.app.hdmi4');
+  c.power({ state: 'Active Standby' });
+  c.advance(2000);
+  c.power({ state: 'Active' });
+  c.advance(500);
+  c.advance(8000); // nothing changed on screen after waking
+  c.foreground('com.webos.app.home'); // later: LG Home on purpose
+  c.advance(10000);
+  assert.equal(opened(c, 'tld.my.customlauncher'), 0, 'stays in LG Home');
+});
+
 test('wake: LG Home bouncing back over the chosen app is still corrected', () => {
   targetNow.id = 'tld.my.customlauncher';
   const c = controller();
@@ -483,10 +498,17 @@ test('after an app closes, the safety net lasts only a few seconds', () => {
   c.advance(500);
   const back = opened(c, 'tld.my.customlauncher');
   assert(back >= 1, 'back to the chosen app');
+  c.foreground('tld.my.customlauncher');
+  c.advance(1000);
+  c.foreground('com.webos.app.home'); // LG Home bouncing back a moment later
+  c.advance(3500);
+  const corrected = opened(c, 'tld.my.customlauncher');
+  assert.equal(corrected, back + 1, 'a bounce right after returning is corrected');
+  c.foreground('tld.my.customlauncher');
   c.advance(10000);
   c.foreground('com.webos.app.home'); // later: LG Home on purpose, straight away
   c.advance(10000);
-  assert.equal(opened(c, 'tld.my.customlauncher'), back, 'stays in LG Home');
+  assert.equal(opened(c, 'tld.my.customlauncher'), corrected, 'stays in LG Home');
 });
 
 // App buttons: learning a button in the settings app and opening its app.
