@@ -1332,7 +1332,9 @@ var screenWatch = require('./screen-watch')(
       !stopping &&
       !launching
     ) {
-      resumeGuardUntil = monotonic() + 30000;
+      // Only a short net after an app closes: LG Home bouncing back over your
+      // app happens within moments; later, LG Home is your own choice.
+      resumeGuardUntil = monotonic() + 5000;
       resumeRetries = 0;
       launching = true;
       log({ event: 'return-after-exit' });
