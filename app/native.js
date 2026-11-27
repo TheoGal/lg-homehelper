@@ -1046,7 +1046,7 @@ var timer = setInterval(function () {
   if (resumeGuardUntil && now >= resumeGuardUntil) cancelResume();
   if (
     resumeGuardUntil &&
-    resumeRetries < 2 &&
+    resumeRetries < 1 && // one correction: a second one would fight the TV
     ready &&
     !launching &&
     !visitingLG &&

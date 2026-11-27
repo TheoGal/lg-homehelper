@@ -468,7 +468,7 @@ test('wake: the safety net lasts only a few seconds', () => {
   assert.equal(opened(c, 'tld.my.customlauncher'), 0, 'stays in LG Home');
 });
 
-test('wake: LG Home bouncing back over the chosen app is still corrected', () => {
+test('wake: only one correction', () => {
   targetNow.id = 'tld.my.customlauncher';
   const c = controller();
   c.advance(60000);
@@ -484,7 +484,7 @@ test('wake: LG Home bouncing back over the chosen app is still corrected', () =>
   c.advance(500);
   c.foreground('com.webos.app.home'); // the TV, a moment after the launch
   c.advance(8000);
-  assert.equal(opened(c, 'tld.my.customlauncher'), first + 1, 'opened again');
+  assert.equal(opened(c, 'tld.my.customlauncher'), first, 'one correction only: no fight with the TV');
 });
 
 test('after an app closes, the safety net lasts only a few seconds', () => {
