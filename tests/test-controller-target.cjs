@@ -433,6 +433,33 @@ test('wake into LG Home: the chosen app replaces it', () => {
   assert.equal(opened(c, 'tld.my.customlauncher'), before + 1, 'chosen app opened once');
 });
 
+test('boot: leaving the chosen app for LG Home is not undone', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  const c = controller();
+  c.foreground('com.webos.app.home');
+  c.advance(5000);
+  const first = opened(c, 'tld.my.customlauncher');
+  assert(first >= 1, 'LG Home at boot is replaced');
+  c.foreground('tld.my.customlauncher');
+  c.advance(20000);
+  c.foreground('com.webos.app.home'); // its own LG Home shortcut, on purpose
+  c.advance(10000);
+  assert.equal(opened(c, 'tld.my.customlauncher'), first, 'stays in LG Home');
+});
+
+test('boot: LG Home bouncing back over the chosen app is still corrected', () => {
+  targetNow.id = 'tld.my.customlauncher';
+  const c = controller();
+  c.foreground('com.webos.app.home');
+  c.advance(5000);
+  const first = opened(c, 'tld.my.customlauncher');
+  c.foreground('tld.my.customlauncher');
+  c.advance(500);
+  c.foreground('com.webos.app.home'); // the TV, a moment after the launch
+  c.advance(8000);
+  assert.equal(opened(c, 'tld.my.customlauncher'), first + 1, 'opened again');
+});
+
 // App buttons: learning a button in the settings app and opening its app.
 const buttons = require('../app/buttons');
 const SETTINGS_APP = 'io.github.theogal.homehelper.settings';

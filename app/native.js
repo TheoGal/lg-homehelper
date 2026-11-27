@@ -1202,6 +1202,8 @@ function lgVisitRequested() {
   return age >= 0 && age <= 10000;
 }
 var watchTarget;
+var lastRealForeground = null,
+  lastRealForegroundAt = 0;
 // The remote vanished (deep standby, power-off). Power events may not arrive:
 // in standby the TV drops the connection they come over. So also look for the
 // remote itself, and start a fresh relay once it is back.
@@ -1277,6 +1279,24 @@ var screenWatch = require('./screen-watch')(
       cancelResume();
       suppressReturnUntil = monotonic() + 7000;
       log({ event: 'lg-visit' });
+    }
+    // Leaving the chosen app for LG Home after it has been on screen a moment
+    // (for example its own LG Home shortcut) is on purpose: the power-on
+    // safety net must not drag you back. A bounce within 2 s of opening it is
+    // still the TV getting in the way, and is still corrected.
+    var seenAt = monotonic();
+    if (
+      id === 'com.webos.app.home' &&
+      lastRealForeground &&
+      lastRealForeground === target() &&
+      seenAt - lastRealForegroundAt >= 2000
+    ) {
+      if (resumeGuardUntil) log({ event: 'left-target' });
+      cancelResume();
+    }
+    if (id && id !== lastRealForeground) {
+      lastRealForeground = id;
+      lastRealForegroundAt = seenAt;
     }
     if (id === 'com.webos.app.home') {
       if (lgHomeSince === null) lgHomeSince = monotonic();
@@ -1378,6 +1398,8 @@ var screenWatch = require('./screen-watch')(
       !stopping
     ) {
       var now = monotonic();
+      // A wake: LG Home showing now is the TV's doing, not you leaving your app.
+      lastRealForeground = null;
       resumePendingUntil = now + 10000;
       resumeGuardUntil = now + 30000;
       resumeSettleUntil = now + 3000;
