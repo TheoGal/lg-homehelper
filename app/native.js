@@ -1093,14 +1093,12 @@ setTimeout(
       return;
     }
     if (automatic) {
-      // Boot: leave the TV's own power-on choice (for example its last input)
-      // alone and only replace LG Home if the TV opens it.
-      var now = monotonic();
-      resumeGuardUntil = now + 45000;
-      resumeSettleUntil = now + 3000;
-      resumeRetries = 0;
-      lgHomeSince = lastForeground === 'com.webos.app.home' ? now : null;
-      log({ event: 'boot-wait-lg-home' });
+      // Clean boot: webOS only lets Home Helper start 30-45 s in, by when you
+      // have usually picked something yourself (even LG Home, to choose an
+      // input). So change nothing on screen; Home and closing apps work as
+      // usual from now on. A wake from Quick Start+ standby is handled by the
+      // power events instead, and still replaces LG Home.
+      log({ event: 'boot-quiet' });
       start();
       return;
     }

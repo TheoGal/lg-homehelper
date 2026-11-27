@@ -394,12 +394,12 @@ test('boot into the last input: the chosen app is not opened', () => {
   assert.equal(opened(c, 'tld.my.customlauncher'), 0, 'input stays on screen');
 });
 
-test('boot into LG Home: the chosen app replaces it', () => {
+test('clean boot into LG Home: nothing changes on screen', () => {
   targetNow.id = 'tld.my.customlauncher';
   const c = controller();
   c.foreground('com.webos.app.home');
-  c.advance(5000);
-  assert.equal(opened(c, 'tld.my.customlauncher'), 1, 'chosen app opened once');
+  c.advance(10000);
+  assert.equal(opened(c, 'tld.my.customlauncher'), 0, 'LG Home stays: Home Helper arrived late');
 });
 
 test('wake into the last input: the chosen app is not opened', () => {
@@ -433,23 +433,35 @@ test('wake into LG Home: the chosen app replaces it', () => {
   assert.equal(opened(c, 'tld.my.customlauncher'), before + 1, 'chosen app opened once');
 });
 
-test('boot: leaving the chosen app for LG Home is not undone', () => {
+test('wake: leaving the chosen app for LG Home is not undone', () => {
   targetNow.id = 'tld.my.customlauncher';
   const c = controller();
+  c.advance(60000);
+  c.foreground('tld.my.customlauncher');
+  c.power({ state: 'Active Standby' });
+  c.advance(2000);
+  c.power({ state: 'Active' });
+  c.advance(500);
   c.foreground('com.webos.app.home');
   c.advance(5000);
   const first = opened(c, 'tld.my.customlauncher');
-  assert(first >= 1, 'LG Home at boot is replaced');
+  assert(first >= 1, 'LG Home after the wake is replaced');
   c.foreground('tld.my.customlauncher');
-  c.advance(20000);
+  c.advance(10000);
   c.foreground('com.webos.app.home'); // its own LG Home shortcut, on purpose
   c.advance(10000);
   assert.equal(opened(c, 'tld.my.customlauncher'), first, 'stays in LG Home');
 });
 
-test('boot: LG Home bouncing back over the chosen app is still corrected', () => {
+test('wake: LG Home bouncing back over the chosen app is still corrected', () => {
   targetNow.id = 'tld.my.customlauncher';
   const c = controller();
+  c.advance(60000);
+  c.foreground('tld.my.customlauncher');
+  c.power({ state: 'Active Standby' });
+  c.advance(2000);
+  c.power({ state: 'Active' });
+  c.advance(500);
   c.foreground('com.webos.app.home');
   c.advance(5000);
   const first = opened(c, 'tld.my.customlauncher');
