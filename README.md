@@ -150,9 +150,17 @@ Developer Mode apps.
   the setup.
 - After updating, restart the TV (or uninstall both apps and install them
   again) so the new version's background parts are the ones running.
-- At power-on, Home Helper only replaces LG Home. If your TV is set to start
-  with its last input or app, that is what you get. If it starts with LG Home,
-  you may see it briefly before your app opens.
+- **At power-on**, what happens depends on how the TV was off:
+  - **Waking from standby** (Quick Start+ on): Home Helper is already running.
+    If the TV opens LG Home, your app replaces it within a few seconds. If the
+    TV opens its last input or app, that stays.
+  - **After a full boot** (Quick Start+ off, or the TV restarted itself): Home
+    Helper only gets to start about 30 to 45 seconds in, when you've usually
+    picked something already. So it changes nothing on screen; press Home to
+    open your app.
+- Home Helper only puts your app back on its own right after the TV wakes or
+  an app closes, and only for a few seconds. If you go to LG Home yourself,
+  for example with your launcher's own LG Home shortcut, it stays there.
 - **Suggestion:** set your TV's home screen setting to start with the **last
   input used** instead of the **home screen**. This way the TV boots straight
   into your last input, and seconds later Home Helper is ready to open your
