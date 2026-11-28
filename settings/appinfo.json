@@ -1,6 +1,6 @@
 {
   "id": "io.github.theogal.homehelper.settings",
-  "version": "1.2.1",
+  "version": "1.2.2",
   "vendor": "Home Helper",
   "type": "web",
   "main": "index.html",
