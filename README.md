@@ -152,20 +152,16 @@ Developer Mode apps.
   again) so the new version's background parts are the ones running.
 - **At power-on**, what happens depends on how the TV was off:
   - **Waking from standby** (Quick Start+ on): Home Helper is already running.
-    If the TV opens LG Home, your app replaces it within a few seconds. If the
+    If the TV opens LG Home, your home app opens within a few seconds. If the
     TV opens its last input or app, that stays.
   - **After a full boot** (Quick Start+ off, or the TV restarted itself): Home
-    Helper only gets to start about 30 to 45 seconds in, when you've usually
-    picked something already. So it changes nothing on screen; press Home to
-    open your app.
-- Home Helper only puts your app back on its own right after the TV wakes or
-  an app closes, and only for a few seconds. If you go to LG Home yourself,
-  for example with your launcher's own LG Home shortcut, it stays there.
+    Helper only gets to start about 30 to 45 seconds in so it changes nothing on screen; pressing Home after these 30 - 40 seconds
+    opens your app. This is by design as the very delayed start up of Home Helper makes the selected home app open while you probably have already selected an input or app. 
 - **Suggestion:** set your TV's home screen setting to start with the **last
   input used** instead of the **home screen**. This way the TV boots straight
-  into your last input, and seconds later Home Helper is ready to open your
+  into your last input, and 30 - 40 seconds later Home Helper is ready to open your
   chosen app when you press Home.
-- Back is never changed. When an app has used up its own Back steps and
+- When an app has used up its own Back steps and
   closes, you land in your chosen app instead of LG Home.
   Holding Back does whatever your TV normally does (accessibility zoom on
   newer models); Home Helper doesn't act on it.
