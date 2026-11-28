@@ -153,6 +153,10 @@ Developer Mode apps.
 - At power-on, Home Helper only replaces LG Home. If your TV is set to start
   with its last input or app, that is what you get. If it starts with LG Home,
   you may see it briefly before your app opens.
+- **Suggestion:** set your TV's home screen setting to start with the **last
+  input used** instead of the **home screen**. This way the TV boots straight
+  into your last input, and seconds later Home Helper is ready to open your
+  chosen app when you press Home.
 - Back is never changed. When an app has used up its own Back steps and
   closes, you land in your chosen app instead of LG Home.
   Holding Back does whatever your TV normally does (accessibility zoom on
